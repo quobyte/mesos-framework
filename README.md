@@ -6,7 +6,7 @@ The Mesos Quobyte framework deploys the Quobyte Storage System on a Mesos cluste
 Quobyte requires 3 different services to run and offers two additional Services:
 
 * Registry Services: system Configuration; registry of services, devices, volumes
-* Metadata Service: file metadata and locations		
+* Metadata Service: file metadata and locations
 * Data Services: store file data
 * API Service: Provides RPC API service for third party software
 * Webconsole: User interface for monitoring and managing the Quobyte system
@@ -21,9 +21,12 @@ Dependencies:
 Usage
 ======
 
-Build
------
-Checkout branch 0.23 of the mesos submodule, build (see Apache Mesos), run make.
+Deploy
+------
+
+Use the Docker container quobyte/quobyte-mesos/ from the Docker Hub: https://hub.docker.com/r/quobyte/quobyte-mesos/
+
+To build from source, checkout branch 0.23 of the mesos submodule, build (see Apache Mesos), run make.
 
 Setup Devices
 -------------
