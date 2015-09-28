@@ -1,0 +1,57 @@
+/**
+ * Copyright 2015 Quobyte Inc. All rights reserved.
+ *
+ * See LICENSE file for license details.
+ */
+
+package quobyte;
+
+// This is persistent in ZK.
+message SchedulerState {
+  optional string framework_id_value = 1;
+  // Quobyte version to run. Shut it down if
+  // field does not exist.
+  optional string target_version = 2;
+}
+
+enum DeviceType {
+  BOOTSTRAP = 1;
+  REGISTRY = 2;
+  METADATA = 3;
+  DATA = 4;
+}
+
+// This is the message format between scheduler and executor
+message ProbeRequest {}
+
+message ProbeResponse {
+  repeated DeviceType device_type = 1;
+}
+
+// Internal data structures follow
+message ServiceState {
+  enum TaskState {
+    UNKNOWN = 1;  // Reconcile!
+    NOT_RUNNING = 2;  // Start!
+    STARTING = 3;
+    RUNNING = 4;
+  }
+  required TaskState state = 1 [default=UNKNOWN];
+  optional int64 last_update_s = 2;
+  optional int64 last_seen_s = 3;
+  optional string last_message = 4;
+}
+
+message NodeState {
+  optional string hostname = 1;
+  optional string slave_id_value = 2;
+
+  required ServiceState prober = 3;
+  required ServiceState registry = 4;
+  required ServiceState metadata = 5;
+  required ServiceState data = 6;
+
+  repeated DeviceType device_type = 7;
+
+  optional int64 last_probe_s = 8;
+}

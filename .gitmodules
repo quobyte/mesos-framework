@@ -1,0 +1,3 @@
+[submodule "thirdparty/mesos"]
+	path = thirdparty/mesos
+	url = https://github.com/apache/mesos.git
