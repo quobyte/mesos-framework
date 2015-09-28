@@ -26,7 +26,9 @@ Deploy
 
 Use the Docker container quobyte/quobyte-mesos/ from the Docker Hub: https://hub.docker.com/r/quobyte/quobyte-mesos/
 
-To build from source, checkout branch 0.23 of the mesos submodule, build (see Apache Mesos), run make.
+See quobyte-mesos.sh for environment variables for configuration.
+
+Alternatively, build from source, checkout branch 0.23 of the mesos submodule, build (see Apache Mesos), run make.
 
 Setup Devices
 -------------
