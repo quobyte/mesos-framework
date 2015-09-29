@@ -31,7 +31,7 @@ See quobyte-mesos.sh for environment variables for configuration.
 As binary built from source
 ---------------------------
 
-Build mesos (if in doubt refer to http://mesos.apache.org/gettingstarted/). Make sure that you do not have installed -devel packages of Mesos direct and indirect third party dependencies. 
+Build mesos (if in doubt refer to http://mesos.apache.org/gettingstarted/). Make sure that you do not have installed -devel packages of Mesos direct and indirect third party dependencies. Also make sure that you build for the Mesos version that you have deployed (which might be >0.24.1).
 ```
 $ cd thirdparty/mesos; git checkout 0.23.0
 $ ./bootstrap
