@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <chrono>
 #include <google/protobuf/text_format.h>
+#include <gflags/gflags.h>
 
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
