@@ -8,6 +8,6 @@ RUN yum install -y gflags protobuf libmicrohttpd subversion-libs
 ADD scheduler/quobyte-mesos /opt/quobyte-mesos
 ADD executor/executor.tar.gz /opt/executor.tar.gz
 ADD quobyte-mesos.sh /opt/quobyte-mesos.sh
-ADD thirdparty/mesos/build/src/.libs/libmesos-0.23.0.so /opt/libmesos-0.23.0.so
+ADD thirdparty/mesos/build/src/.libs/libmesos-0.24.1.so /opt/libmesos-0.24.1.so
 
 ENTRYPOINT ["/opt/quobyte-mesos.sh"]
