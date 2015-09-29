@@ -21,14 +21,30 @@ Dependencies:
 Usage
 ======
 
-Deploy
-------
+Via pre-built Docker container
+------------------------------
 
 Use the Docker container quobyte/quobyte-mesos/ from the Docker Hub: https://hub.docker.com/r/quobyte/quobyte-mesos/
 
 See quobyte-mesos.sh for environment variables for configuration.
 
-Alternatively, build from source, checkout branch 0.23 of the mesos submodule, build (see Apache Mesos), run make.
+As binary built from source
+---------------------------
+
+Build mesos (if in doubt refer to http://mesos.apache.org/gettingstarted/). Make sure that you do not have installed -devel packages of Mesos direct and indirect third party dependencies. 
+```
+$ cd thirdparty/mesos; git checkout 0.23.0
+$ ./bootstrap
+$ mkdir build
+$ cd build
+$ ../configure
+$ make
+```
+
+Build the Quobyte framework and its dependencies:
+```
+$ make
+```
 
 Setup Devices
 -------------
