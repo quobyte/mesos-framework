@@ -485,6 +485,27 @@ void QuobyteScheduler::statusUpdate(mesos::SchedulerDriver* driver,
     service_state->set_last_update_s(now());
     service_state->set_last_seen_s(now());
     service_state->set_last_message(status.message());
+
+    std::set<int> device_types(
+        node->second.device_type().begin(),
+        node->second.device_type().end());
+
+    bool service_should_run = true;
+    if (service == "quobyte-registry" &&
+        device_types.count(quobyte::DeviceType::REGISTRY) == 0) {
+      service_should_run = false;
+    } else if (service == "quobyte-metadata" &&
+               device_types.count(quobyte::DeviceType::METADATA) == 0) {
+      service_should_run = false;
+    } else if (service == "quobyte-data" &&
+               device_types.count(quobyte::DeviceType::DATA) == 0) {
+      service_should_run = false;
+    }
+    if (!service_should_run) {
+      LOG(INFO) << "Service type " << service
+          << " is no longer needed, killing";
+      driver->killTask(status.task_id());
+    }
   } else if (IsTerminal(status.state())) {
     service_state->set_state(quobyte::ServiceState::NOT_RUNNING);
     service_state->set_last_update_s(now());
