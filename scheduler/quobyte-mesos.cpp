@@ -24,6 +24,7 @@ DEFINE_string(zk, "", "Zookeeper zk://host:port URL ");
 DEFINE_int32(port, 7888, "Scheduler status port and API");
 DEFINE_int32(failover_timeout_s, 24 * 3600, "Mesos framework timeout");
 DEFINE_string(deployment, "default", "Quobyte deployment name");
+DEFINE_string(framework_name, "quobyte", "Mesos framework name");
 DEFINE_bool(reset, false, "Reset all state for this deployment");
 
 using std::placeholders::_1;
@@ -125,7 +126,7 @@ int main(int argc, char* argv[]) {
 
   mesos::FrameworkInfo framework;
   framework.set_user("");  // have Mesos fill in the current user.
-  framework.set_name("quobyte");
+  framework.set_name(FLAGS_framework_name);
   framework.set_failover_timeout(FLAGS_failover_timeout_s);
   framework.mutable_id()->set_value(framework_id);
   framework.set_webui_url(
