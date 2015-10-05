@@ -206,6 +206,32 @@ void QuobyteScheduler::error(mesos::SchedulerDriver* driver,
   LOG(ERROR) << "Error " << message;
 }
 
+void QuobyteScheduler::reconcileHost(mesos::SchedulerDriver* driver,
+                                     const mesos::Offer& offer) {
+  quobyte::NodeState node_state;
+  node_state.set_hostname(offer.hostname());
+  node_state.set_slave_id_value(offer.slave_id().value());
+  nodes_.insert(std::make_pair(offer.hostname(), node_state));
+
+  std::vector<mesos::TaskStatus> status;
+  mesos::TaskStatus prober;
+  prober.set_state(mesos::TASK_LOST);
+  prober.mutable_task_id()->set_value("quobyte-device-prober-" + offer.hostname());
+  status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-registry-" + offer.hostname());
+  status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-metadata-" + offer.hostname());
+  status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-data-" + offer.hostname());
+  status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-console-" + offer.hostname());
+  status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-api-" + offer.hostname());
+  status.push_back(prober);
+  driver->reconcileTasks(status);
+  driver->declineOffer(offer.id());
+}
+
 void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                                       const std::vector<mesos::Offer>& offers) {
   std::vector<mesos::TaskInfo> tasks;
@@ -223,28 +249,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         nodes_.find(offer.hostname());
     if (node == nodes_.end()) {
       LOG(INFO) << "New node " << offer.hostname();
-
-      quobyte::NodeState node_state;
-      node_state.set_hostname(offer.hostname());
-      node_state.set_slave_id_value(offer.slave_id().value());
-      nodes_.insert(std::make_pair(offer.hostname(), node_state));
-
-      std::vector<mesos::TaskStatus> status;
-      mesos::TaskStatus prober;
-      prober.set_state(mesos::TASK_LOST);
-      prober.mutable_task_id()->set_value("quobyte-device-prober-" + offer.hostname());
-      status.push_back(prober);
-      prober.mutable_task_id()->set_value("quobyte-registry-" + offer.hostname());
-      status.push_back(prober);
-      prober.mutable_task_id()->set_value("quobyte-metadata-" + offer.hostname());
-      status.push_back(prober);
-      prober.mutable_task_id()->set_value("quobyte-data-" + offer.hostname());
-      status.push_back(prober);
-      prober.mutable_task_id()->set_value("quobyte-console-" + offer.hostname());
-      status.push_back(prober);
-      prober.mutable_task_id()->set_value("quobyte-api-" + offer.hostname());
-      status.push_back(prober);
-      driver->reconcileTasks(status);
+      reconcileHost(driver, offer);
       driver->declineOffer(offer.id());
       continue;
     }
@@ -253,7 +258,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
     quobyte::NodeState& node_state = node->second;
     if (now() - node_state.prober().last_seen_s() >
             FLAGS_probe_executor_keepalive_interval_s &&
-      node_state.prober().state() != quobyte::ServiceState::RUNNING) {
+        node_state.prober().state() != quobyte::ServiceState::RUNNING) {
       if (remaining_resources.contains(resources_[PROBER_TASK])) {
         node->second.mutable_prober()->set_state(quobyte::ServiceState::STARTING);
         node->second.mutable_prober()->set_last_update_s(now());
@@ -293,7 +298,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
     }
 
     if (node_state.prober().state() == quobyte::ServiceState::RUNNING &&
-               now() - node_state.last_probe_s() > FLAGS_probe_interval_s) {
+        now() - node_state.last_probe_s() > FLAGS_probe_interval_s) {
       LOG(INFO) << "Triggering discovery on " << offer.hostname();
       // Trigger device discovery
       node_state.set_last_probe_s(now());
@@ -302,6 +307,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       driver->sendFrameworkMessage(
           executor_id, offer.slave_id(),
           quobyte::ProbeRequest().SerializeAsString());
+      // Also reconcile tasks
+      reconcileHost(driver, offer);
     }
 
     if (!state_->state().target_version().empty()) {
@@ -316,7 +323,6 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                      system_config_.api.rpc_port,
                      system_config_.api.http_port,
                      offer.slave_id()));
-
       }
       if (remaining_resources.contains(resources_[WEBCONSOLE_TASK]) &&
           DoStartService(console_state_.state())) {
@@ -328,7 +334,6 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                      system_config_.webconsole.rpc_port,
                      system_config_.webconsole.http_port,
                      offer.slave_id()));
-
       }
 
       for (auto device_type : node_state.device_type()) {
@@ -422,7 +427,6 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                            "quobyte-console-" + offer.hostname(),
                            console_state_);
     }
-
     driver->declineOffer(offer.id());
   }
 }
@@ -564,7 +568,8 @@ mesos::ContainerInfo QuobyteScheduler::createQbContainerInfo(
 
   containerInfo.set_type(mesos::ContainerInfo::DOCKER);
   mesos::Volume* devicesVol = containerInfo.add_volumes();
-  devicesVol->set_container_path("/devices");  // TODO(Silvan): make this configurable instead of hardcoded
+  // TODO(Silvan): make this configurable instead of hardcoded
+  devicesVol->set_container_path("/devices");
   devicesVol->set_host_path(devDir);
   devicesVol->set_mode(mesos::Volume::RW);
 
@@ -713,7 +718,8 @@ std::string QuobyteScheduler::handleHTTP(
         console_state_.DebugString() + "</div>";
 
     for (const auto& node : nodes_) {
-      result += "<div style=\"display: inline-block; border: 1px solid black\"><h2>" + node.first + "</h2><pre>" +
+      result += "<div style=\"display: inline-block; border: 1px solid black\"><h2>" + 
+          node.first + "</h2><pre>" +
           node.second.DebugString() + "</pre></div>\n";
     }
 

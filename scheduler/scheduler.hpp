@@ -111,6 +111,10 @@ public:
   quobyte::ServiceState* getService(
       quobyte::NodeState* node, const std::string& service);
 
+  void reconcileHost(
+      mesos::SchedulerDriver* driver,
+      const mesos::Offer& offer);
+
   SystemConfig system_config_;
   SchedulerStateProxy* state_;
   mesos::FrameworkInfo* framework_;
