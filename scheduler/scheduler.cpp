@@ -31,6 +31,7 @@ DEFINE_string(mesos_dns_domain, "mesos",
 static const char* kExecutorId = "quobyte-mesos-prober-11";
 static const char* kArchiveUrl = "/executor.tar.gz";
 static const char* kVersionAPIUrl = "/v1/version";
+static const char* kHealthUrl = "/v1/health";
 static const char* kDockerImageVersion = "docker_image_version";
 
 static int64_t now() {
@@ -729,6 +730,9 @@ std::string QuobyteScheduler::handleHTTP(
     LOG(INFO) << "Rolling out version " << data;
     state_->set_target_version(data);
     return state_->state().target_version();
+  } else if (path.find(kHealthUrl) == 0) {
+    LOG(INFO) << "Rolling out version " << data;
+    return "OK";
   } else {
     std::string result;
     result = "<html><body><h1>Quobyte Mesos Executor</h1>\n";
