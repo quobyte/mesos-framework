@@ -20,11 +20,15 @@
 
 DEFINE_string(master, "",
               "Mesos master host:port or zk://host:port/mesos URL");
-DEFINE_string(zk, "", "Zookeeper zk://host:port URL ");
+DEFINE_string(zk, "", "Zookeeper host:port");
+DEFINE_string(zk_path, "/quobyte", "Zookeeper persistent state location");
 DEFINE_int32(port, 7888, "Scheduler status port and API");
 DEFINE_int32(failover_timeout_s, 24 * 3600, "Mesos framework timeout");
 DEFINE_string(deployment, "default", "Quobyte deployment name");
 DEFINE_string(framework_name, "quobyte", "Mesos framework name");
+DEFINE_string(framework_user, "", "Mesos framework user");
+DEFINE_string(framework_role, "*", "Mesos framework role");
+DEFINE_string(framework_principal, "*", "Mesos framework principal");
 DEFINE_bool(reset, false, "Reset all state for this deployment");
 
 using std::placeholders::_1;
@@ -84,27 +88,8 @@ int main(int argc, char* argv[]) {
   systemConfig.webconsole.http_port = REGISTRY_HTTP_PORT + 40;
   systemConfig.webconsole.rpc_port = REGISTRY_RPC_PORT + 40;
 
-  /*
-  std::smatch m;
-  try {
-    std::string userAndPass  = "(([^/@:]+):([^/@]*)@)";
-    std::string hostAndPort  = "[A-z0-9\\.-]+(:[0-9]+)?";
-    std::string hostAndPorts = "(" + hostAndPort + "(," + hostAndPort + ")*)";
-    std::string zkNode       = "[^/]+(/[^/]+)*";
-    std::string zk_regex        = "zk://(" + userAndPass +"?" + hostAndPorts + ")(/" + zkNode + ")";
-    LOG(INFO) << zk_regex;
-    std::regex re(zk_regex);
-    LOG_IF(FATAL, !std::regex_match(FLAGS_zk, m, re))
-        << "FATAL cannot parse zookeeper '" << FLAGS_zk << "'";
-  } catch (const std::regex_error& e) {
-    LOG(INFO) << e.what() << " " << e.code();
-  }
-  */
-
-
-  //mesos::internal::state::ZooKeeperStorage storage(m[1], Seconds(120), m[9]);
   mesos::internal::state::ZooKeeperStorage storage(
-      "server01:2181", Seconds(120), "/quobyte");
+      FLAGS_zk, Seconds(120), FLAGS_zk_path);
   mesos::internal::state::State state_storage(&storage);
 
   const std::string state_path = "scheduler-" + FLAGS_deployment;
@@ -125,8 +110,10 @@ int main(int argc, char* argv[]) {
   }
 
   mesos::FrameworkInfo framework;
-  framework.set_user("");  // have Mesos fill in the current user.
+  framework.set_user(FLAGS_framework_user);
   framework.set_name(FLAGS_framework_name);
+  framework.set_role(FLAGS_framework_role);
+  framework.set_principal(FLAGS_framework_principal);
   framework.set_failover_timeout(FLAGS_failover_timeout_s);
   framework.mutable_id()->set_value(framework_id);
   framework.set_webui_url(
