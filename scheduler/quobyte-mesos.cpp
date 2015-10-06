@@ -28,7 +28,9 @@ DEFINE_string(deployment, "default", "Quobyte deployment name");
 DEFINE_string(framework_name, "quobyte", "Mesos framework name");
 DEFINE_string(framework_user, "", "Mesos framework user");
 DEFINE_string(framework_role, "*", "Mesos framework role");
-DEFINE_string(framework_principal, "*", "Mesos framework principal");
+DEFINE_string(framework_principal, "*",
+              "Mesos framework principal. "
+              "Provide secret via environment variable QUOBYTE_MESOS_SECRET");
 DEFINE_bool(reset, false, "Reset all state for this deployment");
 
 using std::placeholders::_1;
@@ -127,12 +129,28 @@ int main(int argc, char* argv[]) {
   http.Start(std::bind(&QuobyteScheduler::handleHTTP, &dfsScheduler,_1, _2, _3));
   LOG(INFO) << "Started http://" << GetHostname() << ":" << FLAGS_port;
 
-  mesos::MesosSchedulerDriver schedulerDriver(
-      &dfsScheduler, framework, FLAGS_master);
-  const int status = schedulerDriver.run() == mesos::DRIVER_STOPPED ? 0 : 1;
+  std::unique_ptr<mesos::MesosSchedulerDriver> schedulerDriver;
+
+  const char* mesos_secret = getenv("QUOBYTE_MESOS_SECRET");
+  if (mesos_secret != NULL) {
+    LOG_IF(FATAL, FLAGS_framework_principal.empty())
+        << "Authentication requires --framework_principal and QUOBYTE_MESOS_SECRET";
+    mesos::Credential credential;
+    credential.set_principal(FLAGS_framework_principal);
+    credential.set_secret(mesos_secret);
+    schedulerDriver.reset(
+        new mesos::MesosSchedulerDriver(
+            &dfsScheduler, framework, FLAGS_master, credential));
+  } else {
+    schedulerDriver.reset(
+        new mesos::MesosSchedulerDriver(
+            &dfsScheduler, framework, FLAGS_master));
+  }
+
+  const int status = schedulerDriver->run() == mesos::DRIVER_STOPPED ? 0 : 1;
 
   // Ensure that the driver process terminates.
-  schedulerDriver.stop();
+  schedulerDriver->stop();
 
   http.Stop();
 
