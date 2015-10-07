@@ -14,7 +14,7 @@ Quobyte Mesos integration projects can be found at https://github.com/quobyte :
 - https://github.com/quobyte/universe
 - https://github.com/quobyte/dcos-quobyte
 
-## Submitting Changes to ServiceName
+## Submitting Changes to Quobyte
 
 - A GitHub pull request is the preferred way of submitting patch sets.
 

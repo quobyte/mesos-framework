@@ -1,4 +1,4 @@
-# ServiceName Docs and Website
+# Quobyte Docs and Website
 
 ## Run it locally
 
@@ -24,7 +24,7 @@ following the instructions.
     
             $ brew install node
 
-2. Clone the ServiceName repository
+2. Clone the Quobyte repository
 
 3. Change into the "docs" directory where docs live
 
@@ -47,8 +47,8 @@ following the instructions.
 
 ## Deploying the site
 
-1. Clone a separate copy of the ServiceName repo as a sibling of your normal
-   ServiceName project directory and name it "servicename-gh-pages".
+1. Clone a separate copy of the Quobyte repo as a sibling of your normal
+   Quobyte project directory and name it "servicename-gh-pages".
 
         $ git clone ServiceRepoGit servicename-gh-pages
 

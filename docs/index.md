@@ -1,16 +1,16 @@
 ---
-title: ServiceName: ServiceTagLine
+title: Quobyte: The distributed file system for your data center
 ---
 
 <div class="jumbotron text-center">
-  <h1>ServiceName</h1>
+  <h1>Quobyte</h1>
   <p class="lead">
-    ServiceTagLine
+    The distributed file system for your data center
   </p>
   <p>
-    <a href="ServiceRepoHTTP"
+    <a href="https://github.com/quobyte/mesos-framework"
         class="btn btn-lg btn-primary">
-      ServiceName repository
+      Quobyte repository
     </a>
   </p>
 </div>
