@@ -1,9 +1,9 @@
 ---
 layout: narrow
 tab: resources
-title: ServiceName Resources
+title: Quobyte Resources
 ---
 
-# ServiceName Resources
+# Quobyte Resources
 
-TODO.
+Please contact us or visit [http://www.quobyte.com](http://www.quobyte.com) .
