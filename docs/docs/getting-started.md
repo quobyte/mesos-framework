@@ -1,27 +1,32 @@
 ---
-title: Setting Up and Running ServiceName
+title: Setting Up and Running Quobyte
 ---
 
-## Setting Up And Running ServiceName
+## Setting Up And Running Quobyte
 
 ### Quickstart
 
-TODO.
+Install the Quobyte Universe package and run the DCOS Quobyte subcommand from the DCOS commandline client.
 
 ### Requirements
 
-* TODO.
-* TODO.
+* Mesos
+* Marathon
+* Mesos-DNS
 
 ### Installation
 
-TODO.
+Quobyte is available as a Mesosphere Universe package.
 
 
 ### Upgrading to a Newer Version
 
-TODO.
+The Quobyte Mesos framework supports upgrading an existing installation, run
+
+    dcos quobyte -h
+
+for details.
 
 ### Running in Production Mode
 
-TODO.
+No special steps required.

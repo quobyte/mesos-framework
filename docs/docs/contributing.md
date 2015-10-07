@@ -7,7 +7,12 @@ title: Contributor Guidelines
 
 ## Getting Started
 
-TODO
+Quobyte Mesos integration projects can be found at https://github.com/quobyte :
+
+- https://github.com/quobyte/mesos-framework
+- https://github.com/quobyte/multiverse
+- https://github.com/quobyte/universe
+- https://github.com/quobyte/dcos-quobyte
 
 ## Submitting Changes to ServiceName
 
