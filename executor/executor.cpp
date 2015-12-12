@@ -83,6 +83,8 @@ void QuobyteExecutor::frameworkMessage(
     }
   }
 
+  // TODO(felix): also maintain /devices links
+
   quobyte::ProbeResponse response;
   for (auto type : found_types) {
     response.add_device_type(type);

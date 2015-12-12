@@ -47,7 +47,7 @@ const string API_TASK = "api";
 const float CPUS_PER_API = 0.1;
 const int32_t MEM_PER_API = 512;
 
-const string WEBCONSOLE_TASK = "console";
+const string WEBCONSOLE_TASK = "webconsole";
 // ressources per registry
 const float CPUS_PER_WEBCONSOLE = 0.1;
 const int32_t MEM_PER_WEBCONSOLE = 512;

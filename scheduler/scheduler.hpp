@@ -81,7 +81,7 @@ public:
 
  private:
   static std::string buildResourceString(
-      float cpus, size_t mem, uint16_t rpcPort, uint16_t httpPort);
+      uint16_t rpcPort, uint16_t httpPort);
 
   static mesos::ContainerInfo createQbContainerInfo(const std::string& devDir);
 
@@ -105,8 +105,7 @@ public:
       const std::string& service_id,
       uint16_t rpcPort,
       uint16_t httpPort,
-      float cpu,
-      uint32_t memory);
+      const std::string& resources);
 
   quobyte::ServiceState* getService(
       quobyte::NodeState* node, const std::string& service);

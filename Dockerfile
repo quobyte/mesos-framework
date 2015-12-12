@@ -5,9 +5,11 @@ RUN rpm -Uvh http://epel.mirrors.ovh.net/epel/7/x86_64/e/epel-release-7-5.noarch
 
 RUN yum update -y
 RUN yum install -y gflags protobuf libmicrohttpd subversion-libs
-ADD scheduler/quobyte-mesos /opt/quobyte-mesos
-ADD executor/executor.tar.gz /opt/executor.tar.gz
-ADD quobyte-mesos.sh /opt/quobyte-mesos.sh
-ADD thirdparty/mesos/build/src/.libs/libmesos-0.24.1.so /opt/libmesos-0.24.1.so
 
-ENTRYPOINT ["/opt/quobyte-mesos.sh"]
+ADD scheduler/quobyte-mesos /opt/quobyte-mesos
+COPY executor/executor.tar.gz /opt/executor/executor.tar.gz
+ADD thirdparty/mesos/build/src/.libs/libmesos-*.so /opt/
+ADD quobyte-mesos.sh /opt/quobyte-mesos.sh
+ADD quobyte-mesos-cmd.sh /opt/quobyte-mesos-cmd.sh
+
+CMD ["/opt/quobyte-mesos.sh"]

@@ -85,6 +85,29 @@ When a new version of Quobyte comes out, you can upgrade the cluster with:
 curl -X POST --data "1.1.6" 'http://<framework-host>:<port>/v1/version'
 ```
 
+Running the Framework on Marathon
+---------------------------------
+
+```
+{
+   "id":"/quobyte-mesos",
+   "cmd":"/opt/quobyte-mesos-cmd.sh --zk=zk.corp:2181 --master=zk://zk.corp:2181/mesos --docker_image=docker-registry.corp:5000/quobyte-server --mesos_dns_domain=mesos",
+   "instances":1,
+   "cpus":0.1,
+   "mem":256.0,
+   "ports":[7888],
+   "requirePorts": true,
+   "container": {
+    "type": "DOCKER",
+    "docker": {
+      "forcePullImage": true,
+      "image": "quobyte/quobyte-mesos:0.25.0",
+      "network": "HOST"
+    }
+  }
+}
+```
+
 Limitations/Features:
 ====================
 Desirable improvements:

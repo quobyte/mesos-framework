@@ -25,10 +25,24 @@ DEFINE_string(restrict_hosts, "",
               "Restrict scheduler to these hosts");
 DEFINE_string(docker_image, "dockerregistry.corp.quobyte.com:5000/quobyte-service",
               "The docker image to run");
-DEFINE_string(mesos_dns_domain, "mesos",
+DEFINE_string(registry_dns_name, "_registry._tcp.quobyte.slave",
+              "Quobyte registry configuration");
+DEFINE_string(mesos_dns_domain, ".mesos",
               "Mesos DNS domain");
+DEFINE_string(registry_resources, "cpus:0.5;mem:1024;disk:32",
+              "Resources for registry");
+DEFINE_string(metadata_resources, "cpus:0.5;mem:1024;disk:32",
+              "Resources for metadata");
+DEFINE_string(data_resources, "cpus:0.5;mem:1024;disk:32",
+              "Resources for metadata");
+DEFINE_string(prober_resources, "cpus:0.1;mem:128;disk:32",
+              "Resources for prober");
+DEFINE_string(api_resources, "cpus:0.1;mem:512;disk:32",
+              "Resources for api");
+DEFINE_string(webconsole_resources, "cpus:0.1;mem:512;disk:32",
+              "Resources for webconsole");
 
-static const char* kExecutorId = "quobyte-mesos-prober-11";
+static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
 static const char* kVersionAPIUrl = "/v1/version";
 static const char* kHealthUrl = "/v1/health";
@@ -129,50 +143,45 @@ void SchedulerStateProxy::erase() {
 QuobyteScheduler::QuobyteScheduler(
     SchedulerStateProxy* state,
     mesos::FrameworkInfo* framework,
-    const SystemConfig& systemConfig) 
+    const SystemConfig& systemConfig)
     : system_config_(systemConfig),
       state_(state),
       framework_(framework) {
+  device_directory = "/mnt";
+
   prepareServiceResources(
       REGISTRY_TASK,
       systemConfig.registry.rpc_port,
       systemConfig.registry.http_port,
-      systemConfig.registry.cpu,
-      systemConfig.registry.memory_mb);
+      FLAGS_registry_resources);
 
   prepareServiceResources(
       METADATA_TASK,
       systemConfig.metadata.rpc_port,
       systemConfig.metadata.http_port,
-      systemConfig.metadata.cpu,
-      systemConfig.metadata.memory_mb);
+      FLAGS_metadata_resources);
 
   prepareServiceResources(
       DATA_TASK,
       systemConfig.data.rpc_port,
       systemConfig.data.http_port,
-      systemConfig.data.cpu,
-      systemConfig.data.memory_mb);
+      FLAGS_data_resources);
 
   prepareServiceResources(
       API_TASK,
       systemConfig.api.rpc_port,
       systemConfig.api.http_port,
-      systemConfig.api.cpu,
-      systemConfig.api.memory_mb);
+      FLAGS_api_resources);
 
   prepareServiceResources(
       WEBCONSOLE_TASK,
       systemConfig.webconsole.rpc_port,
       systemConfig.webconsole.http_port,
-      systemConfig.webconsole.cpu,
-      systemConfig.webconsole.memory_mb);
+      FLAGS_webconsole_resources);
 
   mesos::Resources prober_resources =
       mesos::Resources::parse(
-          "cpus:" + std::to_string(CPUS_PER_PROBER) +
-          ";mem:" + std::to_string(MEM_PER_PROBER) +
-          ";disk:512").get();
+          FLAGS_prober_resources).get();
   resources_.emplace(PROBER_TASK, prober_resources);
 }
 
@@ -225,12 +234,11 @@ void QuobyteScheduler::reconcileHost(mesos::SchedulerDriver* driver,
   status.push_back(prober);
   prober.mutable_task_id()->set_value("quobyte-data-" + offer.hostname());
   status.push_back(prober);
-  prober.mutable_task_id()->set_value("quobyte-console-" + offer.hostname());
+  prober.mutable_task_id()->set_value("quobyte-webconsole-" + offer.hostname());
   status.push_back(prober);
   prober.mutable_task_id()->set_value("quobyte-api-" + offer.hostname());
   status.push_back(prober);
   driver->reconcileTasks(status);
-  driver->declineOffer(offer.id());
 }
 
 void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
@@ -286,7 +294,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         var->set_value(".");
 
         mesos::ExecutorInfo executor;
-        executor.mutable_executor_id()->set_value(kExecutorId);
+        executor.mutable_executor_id()->set_value(
+            kExecutorId + state_->framework_id());
         executor.mutable_command()->CopyFrom(command);
         executor.set_source("quobyte");
         task.mutable_executor()->CopyFrom(executor);
@@ -304,12 +313,15 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       // Trigger device discovery
       node_state.set_last_probe_s(now());
       mesos::ExecutorID executor_id;
-      executor_id.set_value(kExecutorId);
+      executor_id.set_value(
+          kExecutorId + state_->framework_id());
       driver->sendFrameworkMessage(
           executor_id, offer.slave_id(),
           quobyte::ProbeRequest().SerializeAsString());
       // Also reconcile tasks
       reconcileHost(driver, offer);
+      driver->declineOffer(offer.id());
+      continue;
     }
 
     if (!state_->state().target_version().empty()) {
@@ -330,8 +342,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         remaining_resources -= resources_[WEBCONSOLE_TASK];
         tasks_to_start.push_back(
             makeTask(WEBCONSOLE_TASK,
-                     "quobyte-console",
-                     "quobyte-console-" + offer.hostname(),
+                     "quobyte-webconsole",
+                     "quobyte-webconsole-" + offer.hostname(),
                      system_config_.webconsole.rpc_port,
                      system_config_.webconsole.http_port,
                      offer.slave_id()));
@@ -425,7 +437,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                            "quobyte-api-" + offer.hostname(),
                            api_state_);
       KillServiceIfRunning(driver,
-                           "quobyte-console-" + offer.hostname(),
+                           "quobyte-webconsole-" + offer.hostname(),
                            console_state_);
     }
     driver->declineOffer(offer.id());
@@ -449,7 +461,7 @@ quobyte::ServiceState* QuobyteScheduler::getService(
     return node->mutable_data();
   } else if (service == "quobyte-api") {
     return &api_state_;
-  } else if (service == "quobyte-console") {
+  } else if (service == "quobyte-webconsole") {
     return &console_state_;
   } else {
     return NULL;
@@ -519,9 +531,7 @@ void QuobyteScheduler::statusUpdate(mesos::SchedulerDriver* driver,
 
   // Do version checks for services
   std::string version;
-  version = status.data();
-  /*
-   * TODO(felix): use labels when they are available
+
   for (const mesos::Label& label : status.labels().labels()) {
     if (label.key() == kDockerImageVersion) {
       version = label.value();
@@ -534,7 +544,6 @@ void QuobyteScheduler::statusUpdate(mesos::SchedulerDriver* driver,
         << status.labels().ShortDebugString();
     return;
   }
-  */
 
   if (state_->state().target_version().empty()) {
     LOG(INFO) << "Shut down requested, killing " << status.task_id();
@@ -576,9 +585,8 @@ void QuobyteScheduler::executorLost(mesos::SchedulerDriver* driver,
 }
 
 std::string QuobyteScheduler::buildResourceString(
-    float cpus, size_t mem, uint16_t rpcPort, uint16_t httpPort){
-  return "cpus:" + std::to_string(cpus) + ";mem:" + std::to_string(mem) +
-          ";ports:[" +
+    uint16_t rpcPort, uint16_t httpPort){
+  return "ports:[" +
           std::to_string(rpcPort) + "-" + std::to_string(rpcPort) +
           "," + std::to_string(httpPort) + "-" + std::to_string(httpPort) +
           "]";
@@ -603,7 +611,7 @@ mesos::ContainerInfo::DockerInfo QuobyteScheduler::createQbDockerInfo(
   mesos::ContainerInfo::DockerInfo dockerInfo;
 
   dockerInfo.set_privileged(true);
-  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::BRIDGE);
+  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::HOST);
   // TODO(Silvan): Once the URI fetcher is available replace set_image by:
   //dockerInfo.set_uri(dockerImage://./quobyte_executor); //file://./quobyte_executor, can also be http://
   dockerInfo.set_image(FLAGS_docker_image + ":" + docker_image_version);
@@ -623,14 +631,14 @@ std::string QuobyteScheduler::constructDockerExecuteCommand(
     const std::string& service_name, size_t rpcPort, size_t httpPort) {
   std::ostringstream rcs;
 
-  rcs << " export QUOBYTE_SERVICE=" << service_name;
+  rcs << "export QUOBYTE_SERVICE=" << service_name;
   rcs << " && export QUOBYTE_REGISTRY="
-      << "_quobyte-registry._tcp.quobyte" << "." << FLAGS_mesos_dns_domain;
+      << FLAGS_registry_dns_name << FLAGS_mesos_dns_domain;
   rcs << " && export QUOBYTE_RPC_PORT=" << rpcPort;
   rcs << " && export QUOBYTE_HTTP_PORT=" << httpPort;
   rcs << " && export HOST_IP=$(dig +short $HOSTNAME)";
+  rcs << " && dig +short $HOSTNAME";
   rcs << " && /opt/main.sh";
-  rcs << " && while true; do echo 'keeping alive'; sleep 300; done;";
 
   LOG(INFO) << "Constructed docker command: " << rcs.str() << "\n";
 
@@ -650,10 +658,10 @@ void QuobyteScheduler::prepareServiceResources(
     const std::string& service_id,
     uint16_t rpcPort,
     uint16_t httpPort,
-    float cpu,
-    uint32_t memory) {
+    const std::string& sys_resources) {
   const std::string res_string =
-      buildResourceString(cpu, memory, rpcPort, httpPort);
+      sys_resources + ";" +
+      buildResourceString(rpcPort, httpPort);
   LOG(INFO) << service_id << " " << res_string;
   mesos::Resources resources = mesos::Resources::parse(res_string).get();
   resources_.emplace(service_id, resources);
@@ -680,9 +688,11 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
       createQbDockerInfo(docker_image_version);
 
   // docker port std::mappings
+#if 0
   *dockerInfo.add_port_mappings() = makePort(rpcPort, "tcp");
   *dockerInfo.add_port_mappings() = makePort(rpcPort, "udp");
   *dockerInfo.add_port_mappings() = makePort(httpPort, "tcp");
+#endif
   containerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
   mesos::CommandInfo command;
@@ -700,10 +710,8 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
 
   mesos::DiscoveryInfo* discovery = taskInfo.mutable_discovery();
   discovery->set_visibility(mesos::DiscoveryInfo::FRAMEWORK);
+  discovery->set_name(service_id);
   discovery->set_version(docker_image_version);
-
-  // TODO(felix): remove post 0.23
-  taskInfo.set_data(docker_image_version);
 
   return taskInfo;
 }
@@ -719,9 +727,10 @@ std::string QuobyteScheduler::handleHTTP(
       LOG(ERROR) << "Could not open executor";
       return "";
     }
-    std::unique_ptr<char[]> buffer(new char[10*1024*1024]);
-    int bytes = read(fd, buffer.get(), 10*1024*1024);
-    if (bytes <=0 || bytes == 10*1024*1024) {
+    const uint32_t kBufferSize = 10*1024*1024;
+    std::unique_ptr<char[]> buffer(new char[kBufferSize]);
+    int bytes = read(fd, buffer.get(), kBufferSize);
+    if (bytes <=0 || bytes == kBufferSize) {
       LOG(FATAL) << "Binary too large " << bytes;
     }
     close(fd);
@@ -739,7 +748,7 @@ std::string QuobyteScheduler::handleHTTP(
     result += state_->state().DebugString() + "<br>";
     result += "<div style=\"display: block\"><h2>API</h2>" +
         api_state_.DebugString() + "</div>";
-    result += "<div style=\"display: block\"><h2>Console</h2>" +
+    result += "<div style=\"display: block\"><h2>Web Console</h2>" +
         console_state_.DebugString() + "</div>";
 
     for (const auto& node : nodes_) {

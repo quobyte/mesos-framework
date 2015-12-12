@@ -25,6 +25,7 @@ DEFINE_string(zk_path, "/quobyte", "Zookeeper persistent state location");
 DEFINE_int32(port, 7888, "Scheduler status port and API");
 DEFINE_int32(failover_timeout_s, 24 * 3600, "Mesos framework timeout");
 DEFINE_string(deployment, "default", "Quobyte deployment name");
+DEFINE_string(framework_url, "", "URL of this framework, auto-generated if empty");
 DEFINE_string(framework_name, "quobyte", "Mesos framework name");
 DEFINE_string(framework_user, "", "Mesos framework user");
 DEFINE_string(framework_role, "*", "Mesos framework role");
@@ -98,7 +99,7 @@ int main(int argc, char* argv[]) {
   SchedulerStateProxy state_proxy(&state_storage, state_path);
 
   if (FLAGS_reset) {
-    LOG(INFO) << "Erased state for deploymente " << FLAGS_deployment;
+    LOG(INFO) << "Erased state for deployment " << FLAGS_deployment;
     state_proxy.erase();
     return 0;
   }
@@ -118,9 +119,13 @@ int main(int argc, char* argv[]) {
   framework.set_principal(FLAGS_framework_principal);
   framework.set_failover_timeout(FLAGS_failover_timeout_s);
   framework.mutable_id()->set_value(framework_id);
-  framework.set_webui_url(
-      std::string("http://") + GetHostname() + ":" +
-      std::to_string(FLAGS_port));
+  if (FLAGS_framework_url.empty()) {
+    framework.set_webui_url(
+        std::string("http://") + GetHostname() + ":" +
+        std::to_string(FLAGS_port));
+  } else {
+    framework.set_webui_url(FLAGS_framework_url);
+  }
   framework.set_checkpoint(true);
 
   QuobyteScheduler dfsScheduler(&state_proxy, &framework, systemConfig);

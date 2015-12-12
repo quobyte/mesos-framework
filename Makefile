@@ -1,5 +1,5 @@
 all: scheduler common executor
-.PHONY: scheduler common executor clean docker
+.PHONY: scheduler common executor clean
 
 scheduler: common executor
 	$(MAKE) -C scheduler
@@ -11,7 +11,7 @@ executor: common
 	$(MAKE) -C executor
 
 clean:
-	$(MAKE) -C executor clean
 	$(MAKE) -C common clean
 	$(MAKE) -C scheduler clean
+	$(MAKE) -C executor clean
 
