@@ -1,7 +1,7 @@
-Quobyte Mesos Framework
-=======================
+Quobyte Apache Mesos Framework
+==============================
 
-The Mesos Quobyte framework deploys the Quobyte Storage System on an Apache Mesos cluster.
+This Apache Mesos framework deploys the Quobyte Storage System on an Apache Mesos cluster.
 
 Quobyte requires 3 different services to run and offers two additional Services:
 
@@ -20,31 +20,6 @@ Dependencies:
 
 Usage
 ======
-
-Via pre-built Docker container
-------------------------------
-
-Use the Docker container quobyte/quobyte-mesos/ from the Docker Hub: https://hub.docker.com/r/quobyte/quobyte-mesos/
-
-See quobyte-mesos.sh for environment variables for configuration.
-
-As binary built from source
----------------------------
-
-Build mesos (if in doubt refer to http://mesos.apache.org/gettingstarted/). Make sure that you do not have installed -devel packages of Mesos direct and indirect third party dependencies. Also make sure that you build for the Mesos version that you have deployed (which might be >0.24.1).
-```
-$ cd thirdparty/mesos; git checkout 0.23.0
-$ ./bootstrap
-$ mkdir build
-$ cd build
-$ ../configure
-$ make
-```
-
-Build the Quobyte framework and its dependencies:
-```
-$ make
-```
 
 Setup Devices
 -------------
@@ -72,23 +47,11 @@ The framework is currently configured via command line flags. The following flag
 
 If something goes wrong, the *--reset* flag might be helpful, which deletes the framework's state on Zookeeper.
 
+Run on the command line
+-----------------------
 
-Run
----
-
-Start the framework, then let it deploy a version with:
 ```
-curl -X POST --data "1.1.5" 'http://<framework-host>:<port>/v1/version'
-```
-
-In order to shut it down:
-```
-curl -X POST --data "" 'http://<framework-host>:<port>/v1/version'
-```
-
-When a new version of Quobyte comes out, you can upgrade the cluster with:
-```
-curl -X POST --data "1.1.6" 'http://<framework-host>:<port>/v1/version'
+sudo docker run quobyte/quobyte-mesos:0.25.0 /opt/quobyte-mesos-cmd.sh --zk=zk.corp:2181 --master=zk://zk.corp:2181/mesos ...
 ```
 
 Running the Framework on Marathon
@@ -113,6 +76,47 @@ Running the Framework on Marathon
   }
 }
 ```
+
+Control the framework
+---------------------
+
+Start the framework, then let it deploy a version with:
+```
+curl -X POST --data "1.1.5" 'http://<framework-host>:<port>/v1/version'
+```
+
+In order to shut it down:
+```
+curl -X POST --data "" 'http://<framework-host>:<port>/v1/version'
+```
+
+When a new version of Quobyte comes out, you can upgrade the cluster with:
+```
+curl -X POST --data "1.1.6" 'http://<framework-host>:<port>/v1/version'
+```
+
+
+Build from source
+=================
+
+Build mesos (if in doubt refer to http://mesos.apache.org/gettingstarted/). Make sure that you do not have installed -devel packages of Mesos direct and indirect third party dependencies. Also make sure that you build for the Mesos version that you have deployed (which might be >0.24.1).
+```
+$ cd thirdparty/mesos; git checkout 0.23.0
+$ ./bootstrap
+$ mkdir build
+$ cd build
+$ ../configure
+$ make
+```
+
+Build the Quobyte framework and its dependencies:
+```
+$ make
+```
+
+Or use the supplied build.sh
+
+
 
 Limitations/Features:
 ====================
