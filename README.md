@@ -51,6 +51,10 @@ The framework is currently configured via command line flags. The following flag
 
 If something goes wrong, the *--reset* flag might be helpful, which deletes the framework's state on Zookeeper.
 
+Make sure that --registry_dns_name is set to hosts on which you created registry devices.
+
+Refer to the Quobyte documentation, specifically the Quick Start Guide on how to bootstrap registries.
+
 Run on the command line
 -----------------------
 
