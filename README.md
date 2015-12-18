@@ -1,7 +1,7 @@
-Mesos Quobyte Framework
+Quobyte Mesos Framework
 =======================
 
-The Mesos Quobyte framework deploys the Quobyte Storage System on a Mesos cluster.
+The Mesos Quobyte framework deploys the Quobyte Storage System on an Apache Mesos cluster.
 
 Quobyte requires 3 different services to run and offers two additional Services:
 
@@ -50,9 +50,9 @@ Setup Devices
 -------------
 
 Storage devices (hard drives, SSDs) are currently managed outside of Mesos. 
-For each device that you want to purpose for Quobyte, install it, format it and mount it. 
+For each device that you want to purpose for Quobyte, install it, format it and mount it in a sub-directory of /mnt. 
 Pick one device that will run the registry initially and run *qbootstrap* (part of Quobyte).
-Then run *qmkdev* to tag it as a registry, metadata or data device.
+For all other devices, run *qmkdev* to tag it as a registry, metadata or data device.
 
 
 Configure Framework
@@ -61,11 +61,17 @@ Configure Framework
 The framework is currently configured via command line flags. The following flags need to be used normally:
 * *--zk*: the Zookeeper URL
 * *--master*: the mesos master, usually as a Zookeeper URL
-* *--port*: port of the framework's built-in HTTP server with a console and API
+* *--port*: port of the framework's built-in HTTP server with a console and API (default 7888).
 * *--docker_image*: the name of the docker image (without version): [registry:port|name]/image
 * *--mesos_dns_domain*: the subdomain where mesos-dns SRV records can be found. No leading dot.
+* *--registry_dns_name*: manually set the registry hosts, format: host:rpcport[,host:rpcport]. rpcport is usually 21000.
+* *--restrict_hosts*: comma-separated list of full mesos-agent hostnames
+* *--port_range_base*: the port range to use for service ports (10 ports will be allocated). Default is 21000.
+* *--api_port*: the port for the JSON-RPC API. You can reach the API on http://api.quobyte.slave.mesos:<portno>. Default is 8889.
+* *--webconsole_port*: the port of the Quobyte Webconsole. You can reach it on http://webconsole.quobyte.slave.mesos:<portno>. Default is 8888.
 
 If something goes wrong, the *--reset* flag might be helpful, which deletes the framework's state on Zookeeper.
+
 
 Run
 ---
@@ -111,9 +117,9 @@ Running the Framework on Marathon
 Limitations/Features:
 ====================
 Desirable improvements:
-* Configurable resource requirements.
-* Rolling updates on version changes.
-
+* Does not use mesos-dns for registry discovery yet as mesos-dns does not support multiple ports. (See [issue #61](https://github.com/mesosphere/mesos-dns/issues/61))
+* Rolling updates on version changes does not work yet, as Mesos does not export labels back to framework. (See [MESOS-4135](https://issues.apache.org/jira/browse/MESOS-4135))
+* Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports.
 
 References:
 ==========

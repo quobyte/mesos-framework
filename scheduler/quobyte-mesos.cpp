@@ -60,36 +60,12 @@ static std::string GetHostname() {
   return h->h_name;
 }
 
+const uint16_t REGISTRY_RPC_PORT = 7860;
+const uint16_t REGISTRY_HTTP_PORT = 7861;
+
 int main(int argc, char* argv[]) {
   gflags::SetUsageMessage("Quobyte Mesos framework");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-
-  // TODO(felix): make most ports free-floating.
-  SystemConfig systemConfig;
-  systemConfig.registry.cpu = CPUS_PER_REGISTRY;
-  systemConfig.registry.memory_mb = MEM_PER_REGISTRY;
-  systemConfig.registry.http_port = REGISTRY_HTTP_PORT;
-  systemConfig.registry.rpc_port = REGISTRY_RPC_PORT;
-
-  systemConfig.metadata.cpu = CPUS_PER_METADATA;
-  systemConfig.metadata.memory_mb = MEM_PER_METADATA;
-  systemConfig.metadata.http_port = REGISTRY_HTTP_PORT + 10;
-  systemConfig.metadata.rpc_port = REGISTRY_RPC_PORT + 10;
-
-  systemConfig.data.cpu = CPUS_PER_DATA;
-  systemConfig.data.memory_mb = MEM_PER_DATA;
-  systemConfig.data.http_port = REGISTRY_HTTP_PORT + 20;
-  systemConfig.data.rpc_port = REGISTRY_RPC_PORT + 20;
-
-  systemConfig.api.cpu = CPUS_PER_API;
-  systemConfig.api.memory_mb = MEM_PER_API;
-  systemConfig.api.http_port = REGISTRY_HTTP_PORT + 30;
-  systemConfig.api.rpc_port = REGISTRY_RPC_PORT + 30;
-
-  systemConfig.webconsole.cpu = CPUS_PER_WEBCONSOLE;
-  systemConfig.webconsole.memory_mb = MEM_PER_WEBCONSOLE;
-  systemConfig.webconsole.http_port = REGISTRY_HTTP_PORT + 40;
-  systemConfig.webconsole.rpc_port = REGISTRY_RPC_PORT + 40;
 
   mesos::internal::state::ZooKeeperStorage storage(
       FLAGS_zk, Seconds(120), FLAGS_zk_path);
@@ -128,7 +104,7 @@ int main(int argc, char* argv[]) {
   }
   framework.set_checkpoint(true);
 
-  QuobyteScheduler dfsScheduler(&state_proxy, &framework, systemConfig);
+  QuobyteScheduler dfsScheduler(&state_proxy, &framework);
 
   quobyte::HttpServer http(FLAGS_port);
   http.Start(std::bind(&QuobyteScheduler::handleHTTP, &dfsScheduler,_1, _2, _3));

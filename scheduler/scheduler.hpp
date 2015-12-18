@@ -14,7 +14,6 @@
 #include "state/state.hpp"
 
 #include "quobyte.pb.h"
-#include "config.hpp"
 
 class SchedulerStateProxy {
  public:
@@ -39,8 +38,7 @@ class SchedulerStateProxy {
 class QuobyteScheduler : public mesos::Scheduler {
 public:
   QuobyteScheduler(SchedulerStateProxy* state,
-                   mesos::FrameworkInfo* framework,
-                   const SystemConfig& systemConfig);
+                   mesos::FrameworkInfo* framework);
   virtual ~QuobyteScheduler() {}
 
   virtual void registered(mesos::SchedulerDriver* driver,
@@ -80,23 +78,13 @@ public:
                          const std::string& data);
 
  private:
-  static std::string buildResourceString(
-      uint16_t rpcPort, uint16_t httpPort);
-
-  static mesos::ContainerInfo createQbContainerInfo(const std::string& devDir);
-
   static mesos::ContainerInfo::DockerInfo createQbDockerInfo(
       const std::string& docker_image_version);
-
-  static std::string constructDockerExecuteCommand(
-      const std::string& service, size_t rpcPort, size_t httpPort);
-
-  static mesos::ContainerInfo::DockerInfo::PortMapping
-      makePort(uint16_t port, const char* type);
 
   mesos::TaskInfo makeTask(const std::string& service_id,
                            const std::string& name,
                            const std::string& task_id,
+                           const std::string& host_name,
                            uint16_t rpcPort,
                            uint16_t httpPort,
                            const mesos::SlaveID& slave_id);
@@ -114,15 +102,16 @@ public:
       mesos::SchedulerDriver* driver,
       const mesos::Offer& offer);
 
-  SystemConfig system_config_;
+  void createHost(const std::string& hostname,
+      const std::string& slave_id);
+
   SchedulerStateProxy* state_;
   mesos::FrameworkInfo* framework_;
 
   std::map<std::string, mesos::Resources> resources_;
 
-  std::string device_directory;
-
   quobyte::ServiceState api_state_;
   quobyte::ServiceState console_state_;
   std::map<std::string, quobyte::NodeState> nodes_;
 };
+

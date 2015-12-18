@@ -40,6 +40,7 @@ message ServiceState {
   optional int64 last_update_s = 2;
   optional int64 last_seen_s = 3;
   optional string last_message = 4;
+  optional string task_id = 5;
 }
 
 message NodeState {
@@ -52,6 +53,7 @@ message NodeState {
   required ServiceState data = 6;
 
   repeated DeviceType device_type = 7;
+  optional bool device_types_valid = 9;
 
   optional int64 last_probe_s = 8;
 }
