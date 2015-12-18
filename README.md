@@ -21,6 +21,11 @@ Dependencies:
 Usage
 ======
 
+Get Quobyte
+-----------
+
+Familiarize yourself with Quobyte from the documentation. Get qmkdev and qbootstrap from the server package. Import the Quobyte docker images into your registry.
+
 Setup Devices
 -------------
 
@@ -28,7 +33,6 @@ Storage devices (hard drives, SSDs) are currently managed outside of Mesos.
 For each device that you want to purpose for Quobyte, install it, format it and mount it in a sub-directory of /mnt. 
 Pick one device that will run the registry initially and run *qbootstrap* (part of Quobyte).
 For all other devices, run *qmkdev* to tag it as a registry, metadata or data device.
-
 
 Configure Framework
 -------------------
