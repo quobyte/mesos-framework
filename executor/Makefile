@@ -6,7 +6,7 @@ INCLUDE_DIRS = -I../common -I$(MESOS_SRC)/src -I$(MESOS_SRC)/build/include -I$(M
 
 CXX = g++
 CXXFLAGS = -g -O2 -pthread -std=c++11
-LDFLAGS += -L../thirdparty/mesos -lmesos -lprotobuf
+LDFLAGS += -L$(MESOS_LIB_DIR) -lmesos-$(MESOS_VERSION) -lprotobuf
 CXXCOMPILE = $(CXX) $(INCLUDE_DIRS) $(INCLUDES) $(CXXFLAGS) -c $< 
 CXXLINK = $(CXX) $(LDFLAGS) -o $(BINARY)
 
@@ -15,7 +15,7 @@ default: all
 all: $(BINARY) executor.tar.gz
 
 executor.tar.gz: $(BINARY)
-	cp /lib64/libprotobuf.so.8 .
+	cp -v /lib64/libprotobuf.so.8 .
 	tar cvf executor.tar.gz $(BINARY) libprotobuf.so.8
 
 $(BINARY): $(OBJS)

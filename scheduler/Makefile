@@ -10,7 +10,7 @@ INCLUDE_DIRS = -I../common -I$(MESOS_SRC)/src -I$(MESOS_SRC)/build/include \
 
 CXX = g++
 CXXFLAGS = -g -pthread -std=c++11
-LDFLAGS += -L../thirdparty/mesos -L../common -lmesos -lpthread -lprotobuf -lgflags -lmicrohttpd
+LDFLAGS += -L$(MESOS_LIB_DIR) -L../common -lmesos-$(MESOS_VERSION) -lpthread -lprotobuf -lgflags -lmicrohttpd
 CXXCOMPILE = $(CXX) $(INCLUDE_DIRS) $(INCLUDES) $(CXXFLAGS) -c $<
 CXXLINK = $(CXX) $(LDFLAGS) -o $(BINARY)
 

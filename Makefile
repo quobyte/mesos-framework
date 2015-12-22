@@ -1,3 +1,8 @@
+ROOT_DIR=$(realpath .)
+MESOS_LIB_DIR=$(ROOT_DIR)/thirdparty/mesos/build/src/.libs/
+export MESOS_LIB_DIR
+export MESOS_VERSION
+
 all: scheduler common executor
 .PHONY: scheduler common executor clean
 

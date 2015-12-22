@@ -22,6 +22,8 @@ const std::string DATA_TASK = "data";
 const std::string API_TASK = "api";
 const std::string WEBCONSOLE_TASK = "webconsole";
 
+const uint32_t kBufferSize = 10*1024*1024;
+
 DEFINE_int32(probe_interval_s, 60,
              "Device probe interval");
 DEFINE_int32(probe_executor_keepalive_interval_s, 60,
@@ -817,7 +819,6 @@ std::string QuobyteScheduler::handleHTTP(
       LOG(ERROR) << "Could not open executor";
       return "";
     }
-    const uint32_t kBufferSize = 10*1024*1024;
     std::unique_ptr<char[]> buffer(new char[kBufferSize]);
     int bytes = read(fd, buffer.get(), kBufferSize);
     if (bytes <=0 || bytes == kBufferSize) {
