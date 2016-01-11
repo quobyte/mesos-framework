@@ -47,7 +47,7 @@ void QuobyteExecutor::launchTask(
 void QuobyteExecutor::killTask(
     mesos::ExecutorDriver* driver,
     const mesos::TaskID& taskId) {
-  std::cout << "killTask" << std::endl;
+  // We don't actually start tasks.
 }
 
 void QuobyteExecutor::frameworkMessage(

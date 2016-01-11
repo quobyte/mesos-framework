@@ -103,6 +103,20 @@ When a new version of Quobyte comes out, you can upgrade the cluster with:
 curl -X POST --data "1.1.6" 'http://<framework-host>:<port>/v1/version'
 ```
 
+Health Monitoring
+-----------------
+
+The framework exports /v1/health for health monitoring.
+
+
+Uninstall
+---------
+
+You can shut down all Quobyte tasks with a POST to /v1/version (see above). The only state left on hosts
+are any Quobyte devices and their content.
+
+The framework has a flag --reset to erase its state from Zookeeper.
+
 
 Build from source
 =================

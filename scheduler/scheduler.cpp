@@ -54,6 +54,8 @@ DEFINE_string(extra_service_config, "",
               "Extra config for all service.cfg files");
 DEFINE_string(host_device_directory,"/mnt",
               "Host directory where Quobyte devices are mounted");
+DEFINE_string(prober_user, "root",
+              "User to run the prober executor");
 DEFINE_int32(port_range_base, 21000,
              "Where to start allocating ports (10 required currently). This very port will be used for the registry RPC port.");
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
@@ -310,7 +312,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         uri->set_value(framework_->webui_url() + kArchiveUrl);
         uri->set_extract(true);
         uri->set_cache(false);
-        command.set_user("felix");
+        command.set_user(FLAGS_prober_user);
         command.set_shell(true);
         command.set_value("./quobyte-mesos-executor");
         mesos::Environment* env = command.mutable_environment();
