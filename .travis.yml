@@ -1,2 +1,5 @@
 language: cpp
 script: ./travis_build.sh
+sudo: required
+services:
+  - docker
