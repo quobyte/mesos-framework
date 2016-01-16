@@ -3,3 +3,6 @@ script: ./travis_build.sh
 sudo: required
 services:
   - docker
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y apr-devel
