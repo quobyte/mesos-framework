@@ -1,38 +1,56 @@
-Quobyte Apache Mesos Framework
-==============================
+Quobyte Framework for Apache Mesos / Mesosphere DCOS
+====================================================
 
-This Apache Mesos framework deploys the Quobyte Storage System on an Apache Mesos cluster.
+This Apache Mesos framework deploys the Quobyte Storage System on an Apache Mesos or Mesosphere DCOS cluster.
 
-Quobyte requires 3 different services to run and offers two additional Services:
+Quobyte is a fully fault-tolerant distributed POSIX file system. It aggregates the available storage resources of a cluster
+and makes them available for highly-available and scalable file storage. It can run directly on hosts or in public clouds. In
+public clouds, it works with the the respective persistent volume services instead of local drives.
 
-* Registry Services: system Configuration; registry of services, devices, volumes
-* Metadata Service: file metadata and locations
-* Data Services: store file data
-* API Service: Provides RPC API service for third party software
-* Webconsole: User interface for monitoring and managing the Quobyte system
+As a storage platform for a container infrastructures Quobyte can support applications ranging from databases to Big Data setups. 
+For more details see to http://www.quobyte.com.
 
+This framework deploys Quobyte on a Mesos cluster by starting the respective Quobyte services on each host that has storage resources.
+Quobyte consists of three core services:
+* Registry Services: registry of services, devices, volumes. Usually 3 replicas per deployment.
+* Metadata Service: file metadata and file locations
+* Data Services: file data
+
+Two additional services provide access to the system's management interface:
+* API Service: JSONRPC API service for third-party software
+* Webconsole: user interface for monitoring and managing the Quobyte system
 
 Dependencies:
 =============
 * mesos-dns. Keep your mesos subdomain at hand for further setup.
 * a Docker registry with the Quobyte services container. You'll need its URL.
 
-
 Usage
 ======
 
-Get Quobyte
------------
+Preparations
+------------
 
-Familiarize yourself with Quobyte from the documentation. Get qmkdev and qbootstrap from the server package. Import the Quobyte docker images into your registry.
+Quobyte is not yet available for direct download. However, you can get access to the Quobyte download and documentation portal by sending an email to info@quobyte.com.
 
-Setup Devices
--------------
+Further:
+* Familiarize yourself with Quobyte from the documentation. 
+* Get qmkdev and qbootstrap from the quobyte-server package. 
+* Load the Quobyte docker images into your registry as described [here](https://support.quobyte.com/docs/2/latest/container_setup.html)
 
-Storage devices (hard drives, SSDs) are currently managed outside of Mesos. 
-For each device that you want to purpose for Quobyte, install it, format it and mount it in a sub-directory of /mnt. 
-Pick one device that will run the registry initially and run *qbootstrap* (part of Quobyte).
-For all other devices, run *qmkdev* to tag it as a registry, metadata or data device.
+Setup Storage Devices
+---------------------
+
+Quobyte Storage Devices are storage devices local to the host. This means:
+* servers: local HDs and SSDs
+* AWS: mounted EBS volumes
+* GCE: mounted persistent volumes
+
+Storage devices need to be formatted (ext4), tagged with qmkdev, and mounted in a sub-directory of /mnt.
+Pick one device that will run the registry initially and run *qbootstrap*. You need at least one registry, one metadata and
+one data device.
+
+On AWS or GCE attach the devices across one or several instances.
 
 Configure Framework
 -------------------
