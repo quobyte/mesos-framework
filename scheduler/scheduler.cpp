@@ -837,17 +837,51 @@ std::string QuobyteScheduler::handleHTTP(
     return "OK";
   } else {
     std::string result;
-    result = "<html><body><h1>Quobyte Mesos Executor</h1>\n";
-    result += state_->state().DebugString() + "<br>";
-    result += "<div style=\"display: block\"><h2>API</h2>" +
-        api_state_.DebugString() + "</div>";
-    result += "<div style=\"display: block\"><h2>Web Console</h2>" +
-        console_state_.DebugString() + "</div>";
+    result = "<html><head><link rel=\"stylesheet\" href=\"http://elisa.corp.quobyte.com/quobytex.css\">";
+    result += "<style>.details { display: none; } .hostbox:hover .details { display:block; position:absolute; background:#fafafa; border: 2px solid lightgray; }</style>";
+    result += "</head><body style='font-family: sans-serif'>";
+    result += "<h1><img style='vertical-align:middle; padding:3px' src=\"http://www.quobyte.com/favicon-128.png\" width=\"60\">Quobyte Mesos Framework Scheduler</h1>\n";
+    result += "<table><tbody>";
+    result += "<tr><td>Deployed container version:</td><td>";
+    result += state_->state().target_version().empty() ?
+        "No version to deploy (set via REST API)" : state_->state().target_version();
+    result += "<div class=\"details\">" + state_->state().DebugString() + "</div></td></tr>";
+
+    result += "<tr class='hostbox'><td>API: </td><td>" +  ServiceState_TaskState_Name(api_state_.state()) +
+        " " + api_state_.task_id();
+    result += "<div class=\"details\"><pre>" + api_state_.DebugString() + "</pre></div></td></tr>";
+
+    result += "<tr class='hostbox'><td>Console: </td><td>" +  ServiceState_TaskState_Name(api_state_.state()) +
+        " " + console_state_.task_id();
+    result += "<div class=\"details\"><pre>" + console_state_.DebugString() + "</pre></div></td></tr>";
+    result += "</tbody></table>\n\n";
 
     for (const auto& node : nodes_) {
-      result += "<div style=\"display: inline-block; border: 1px solid black\"><h2>" + 
-          node.first + "</h2><pre>" +
-          node.second.DebugString() + "</pre></div>\n";
+      const std::set<int> device_types(
+          node.second.device_type().begin(),
+          node.second.device_type().end());
+
+      result += "<div class='hostbox' style=\"display: inline-block; border: 1px solid lightgray; padding: 3px; margin: 3px\"><h3>" +
+          node.first + "</h3>";
+
+      std::string device_msg = "no device";
+      if (!node.second.device_types_valid()) {
+        device_msg = "waiting for prober";
+      }
+      result += "<table><tbody>";
+      result +=
+          std::string("<tr><td>Registry: </td><td>") + (device_types.count(quobyte::DeviceType::REGISTRY) > 0 ? "found" : device_msg)
+          + " <span title=\"" +  node.second.registry().last_message() + "\">" + "\n"
+          + ServiceState_TaskState_Name(node.second.registry().state()) + "</span>"+ "</td></tr>\n"
+          + "<tr><td>Metadata: </td><td>" + (device_types.count(quobyte::DeviceType::METADATA) > 0 ? "found" : device_msg)
+          + " <span title=\"" +  node.second.metadata().last_message() + "\">"+ "\n"
+          + ServiceState_TaskState_Name(node.second.metadata().state()) + "</span>"+ "</td></tr>\n"
+          + "<tr><td>Data: </td><td>" + (device_types.count(quobyte::DeviceType::DATA) > 0 ? "found" : device_msg)
+          + " <span title=\"" +  node.second.data().last_message() + "\">"+ "\n"
+          + ServiceState_TaskState_Name(node.second.data().state()) + "</span>"+ "</td></tr>\n"
+          + "</tbody></table><div class=\"details\"><pre>" + node.second.DebugString() + "</pre></div>\n\n";
+
+      result += "</div>\n";
     }
 
     result += "</body></html>";
