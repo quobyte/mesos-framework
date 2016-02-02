@@ -66,6 +66,7 @@ The framework is currently configured via command line flags. The following flag
 * *--port_range_base*: the port range to use for service ports (10 ports will be allocated). Default is 21000.
 * *--api_port*: the port for the JSON-RPC API. You can reach the API on http://api.quobyte.slave.mesos:<portno>. Default is 8889.
 * *--webconsole_port*: the port of the Quobyte Webconsole. You can reach it on http://webconsole.quobyte.slave.mesos:<portno>. Default is 8888.
+* *--framework_url*: the URL of the framework. Auto-generated if not set. You have to set it if you run the framework on changing hosts, like from Marathon, otherwise you get "invalid ExecutorInfo".
 
 If something goes wrong, the *--reset* flag might be helpful, which deletes the framework's state on Zookeeper.
 
@@ -134,6 +135,12 @@ You can shut down all Quobyte tasks with a POST to /v1/version (see above). The 
 are any Quobyte devices and their content.
 
 The framework has a flag --reset to erase its state from Zookeeper.
+
+
+Troubleshooting
+---------------
+
+If you get **invalid ExecutorInfo** errors, you are running the framework on a new host. Please --reset it.
 
 
 Build from source
