@@ -15,6 +15,10 @@
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
 
+// Bridge networking does not work reliabley as UDP communication does
+// not go through well.
+// #define BRIDGE_NETWORKING
+
 const std::string PROBER_TASK = "prober";
 const std::string REGISTRY_TASK = "registry";
 const std::string METADATA_TASK = "metadata";
@@ -22,7 +26,7 @@ const std::string DATA_TASK = "data";
 const std::string API_TASK = "api";
 const std::string WEBCONSOLE_TASK = "webconsole";
 
-const uint32_t kBufferSize = 10*1024*1024;
+const uint32_t kBufferSize = 100*1024*1024;
 
 DEFINE_int32(probe_interval_s, 60,
              "Device probe interval");
@@ -44,7 +48,7 @@ DEFINE_string(metadata_resources, "cpus:2.0;mem:8192;disk:32",
               "Resources for metadata");
 DEFINE_string(data_resources, "cpus:4.0;mem:4096;disk:32",
               "Resources for metadata");
-DEFINE_string(prober_resources, "cpus:0.1;mem:256;disk:32",
+DEFINE_string(prober_resources, "cpus:0.1;mem:256;disk:150",
               "Resources for prober");
 DEFINE_string(api_resources, "cpus:0.1;mem:512;disk:32",
               "Resources for api");
@@ -164,6 +168,8 @@ QuobyteScheduler::QuobyteScheduler(
     mesos::FrameworkInfo* framework)
     : state_(state),
       framework_(framework) {
+  LOG(INFO) << framework->ShortDebugString();
+
   prepareServiceResources(
       REGISTRY_TASK,
       FLAGS_port_range_base,
@@ -308,13 +314,15 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         task.mutable_resources()->MergeFrom(resources_[PROBER_TASK]);
 
         mesos::CommandInfo command;
+        command.set_shell(true);
+        command.set_value("./quobyte-mesos-executor");
+        command.set_user(FLAGS_prober_user);
+
         mesos::CommandInfo::URI* uri = command.add_uris();
         uri->set_value(framework_->webui_url() + kArchiveUrl);
         uri->set_extract(true);
         uri->set_cache(false);
-        command.set_user(FLAGS_prober_user);
-        command.set_shell(true);
-        command.set_value("./quobyte-mesos-executor");
+
         mesos::Environment* env = command.mutable_environment();
         mesos::Environment::Variable* var = env->add_variables();
         var->set_name("LD_LIBRARY_PATH");
@@ -659,13 +667,18 @@ mesos::ContainerInfo::DockerInfo QuobyteScheduler::createQbDockerInfo(
   mesos::ContainerInfo::DockerInfo dockerInfo;
 
   dockerInfo.set_privileged(true);
+#ifdef BRIDGE_NETWORKING
   dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::BRIDGE);
+#else
+  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::HOST);
+#endif
   dockerInfo.set_image(FLAGS_docker_image + ":" + docker_image_version);
 
+/*
   mesos::Parameter* param_i = dockerInfo.mutable_parameters()->Add();
   param_i->set_key("interactive");
   param_i->set_value("true");
-  /*
+
   mesos::Parameter* param_t = dockerInfo.mutable_parameters()->Add();
   param_t->set_key("tty");
   param_t->set_value("true");
@@ -774,6 +787,7 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   mesos::ContainerInfo::DockerInfo dockerInfo =
       createQbDockerInfo(docker_image_version);
 
+#ifdef BRIDGE_NETWORKING
   // docker port std::mappings
   *dockerInfo.add_port_mappings() = makePort(rpcPort, "tcp");
   *dockerInfo.add_port_mappings() = makePort(rpcPort, "udp");
@@ -784,6 +798,7 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   if (service_id == "webconsole") {
     *dockerInfo.add_port_mappings() = makePort(FLAGS_webconsole_port, "tcp");
   }
+#endif
   containerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
   mesos::CommandInfo command;
