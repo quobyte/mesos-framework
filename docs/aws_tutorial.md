@@ -1,7 +1,7 @@
-Quobyte DCOS Tutorial
-=====================
+Quobyte DCOS Installation Tutorial
+==================================
 
-How to run the Quobyte framework for Apache Mesos / Mesosphere DCOS on Amazon Web Services.
+How to install the Quobyte framework for Apache Mesos / Mesosphere DCOS on Amazon Web Services.
 
 Requirements
 ------------
@@ -63,7 +63,7 @@ From the resulting list select three slave nodes for further installation. Pleas
 Now copy the deployment tools to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example line looks like this:
 
 ```
-scp -r ~/tmp/quobte-deploy/tools core@10.0.0.185:/home/core/
+scp -r ~/tmp/quobte-deploy-master/tools core@10.0.0.185:/home/core/
 
 ```
 
@@ -71,7 +71,13 @@ Now the deployment tools are in place on the involved nodes, located at /home/co
 
 #### Create local device mounts on three nodes that will be used as Quobyte hosts
 
-On each of those nodes execute the following:
+For each of those nodes execute the following:
+
+* Log into the node via ssh
+
+```
+ssh <node ip address>
+```
 
 * Create /home/quobyte_device and /mnt/quobyte_device:
 
@@ -123,6 +129,14 @@ sudo ~/tools/qmkdev -t DATA /mnt/quobyte_device
 Please note that there will be a warning about qmkdev beeing unable to access the smartctl binary and, similar to qbootstrap, change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
 
 Furthermore, note that you can add more devices using qmkdev (**NOT qbootstrap!**) for all three types (Registry, Metadata, Data) if you prepared more nodes, e.g. in the local device mounts step above.
+
+
+* Exit from the ssh remote shells, execute exit on all nodes:
+
+```
+exit
+```
+
 
 ### Install Quobyte DCOS package
 
