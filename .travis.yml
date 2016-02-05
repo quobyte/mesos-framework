@@ -1,10 +1,8 @@
 language: cpp
 script: ./travis_build.sh
-sudo: required
 services:
   - docker
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libapr1-dev libsvn-dev libprotobuf-dev
-  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 
