@@ -12,13 +12,11 @@ CXXLINK = $(CXX) $(LDFLAGS) -o $(BINARY)
 
 OBJS := $(SOURCES:.cpp=.o)
 default: all
-all: $(BINARY) executor.tar.gz
+all: $(BINARY)
 
 executor.tar.gz: $(BINARY)
-	cp -v /lib64/libprotobuf.so.8 .
-	cp -v $(MESOS_SRC)/build/src/.libs/libmesos-$(MESOS_VERSION).so .
-	strip --strip-all libprotobuf.so.8 libmesos-$(MESOS_VERSION).so
-	tar cvf executor.tar.gz $(BINARY) libprotobuf.so.8 libmesos-$(MESOS_VERSION).so
+	./gather_libs.sh
+	tar cvf executor.tar.gz $(BINARY) .libs
 
 $(BINARY): $(OBJS)
 	$(CXXLINK) $(OBJS) ../common/libquobyteproto.a

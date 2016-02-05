@@ -12,6 +12,8 @@ cd build
 ../configure
 make
 
+strip --strip-all thirdparty/mesos/build/src/.libs/libmesos-*.so
+
 echo "Build framework"
 cd ../../..
 make clean

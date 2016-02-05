@@ -65,6 +65,8 @@ DEFINE_int32(port_range_base, 21000,
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
 DEFINE_int32(webconsole_port, 8888, "Webconsole HTTP port");
 
+DEFINE_string(framework_image, "", "Container name of the Quobyte framework");
+
 static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
 static const char* kVersionAPIUrl = "/v1/version";
@@ -113,6 +115,126 @@ static void KillServiceIfRunning(
     driver->killTask(task_id);
   }
 }
+
+static mesos::ContainerInfo createQbContainerInfo() {
+  mesos::ContainerInfo containerInfo;
+
+  containerInfo.set_type(mesos::ContainerInfo::DOCKER);
+  mesos::Volume* devicesVol = containerInfo.add_volumes();
+  devicesVol->set_container_path("/devices");
+  devicesVol->set_host_path(FLAGS_host_device_directory);
+  devicesVol->set_mode(mesos::Volume::RW);
+
+  return containerInfo;
+}
+
+static mesos::ContainerInfo::DockerInfo createQbDockerInfo(
+    const std::string& docker_image, bool same_pid=false) {
+  mesos::ContainerInfo::DockerInfo dockerInfo;
+
+  dockerInfo.set_privileged(true);
+#ifdef BRIDGE_NETWORKING
+  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::BRIDGE);
+#else
+  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::HOST);
+#endif
+  dockerInfo.set_image(docker_image);
+
+  if (same_pid) {
+    mesos::Parameter* param_i = dockerInfo.mutable_parameters()->Add();
+    param_i->set_key("pid");
+    param_i->set_value("host");
+  }
+
+  return dockerInfo;
+}
+
+static std::string constructDockerExecuteCommand(
+    const std::string& service_name,
+    const std::string& host_name,
+    size_t rpcPort, size_t httpPort) {
+  std::ostringstream rcs;
+
+  rcs << "export QUOBYTE_SERVICE=" << service_name;
+  rcs << " && export QUOBYTE_REGISTRY="
+      << FLAGS_registry_dns_name << FLAGS_mesos_dns_domain;
+
+  if (rpcPort != 0) {
+    rcs << " && export QUOBYTE_RPC_PORT=" << rpcPort;
+  } else {
+    rcs << " && export QUOBYTE_RPC_PORT=$PORT0";
+  }
+
+  if (httpPort != 0) {
+    rcs << " && export QUOBYTE_HTTP_PORT=" << httpPort;
+  } else {
+    rcs << " && export QUOBYTE_HTTP_PORT=$PORT1";
+  }
+
+  if (service_name == "api") {
+    rcs << " && export QUOBYTE_API_PORT=" + std::to_string(FLAGS_api_port);
+  }
+  if (service_name == "webconsole") {
+    rcs << " && export QUOBYTE_WEBCONSOLE_PORT=" + std::to_string(FLAGS_webconsole_port);
+  }
+
+  rcs << " && export HOST_IP=$(dig +short " + host_name + ")";
+  if (!FLAGS_extra_service_config.empty()) {
+    rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
+        << FLAGS_extra_service_config;
+  }
+  rcs << " && /opt/main.sh";
+
+  VLOG(1) << "Constructed docker command: " << rcs.str() << "\n";
+
+  return rcs.str();
+}
+
+static mesos::ContainerInfo::DockerInfo::PortMapping
+    makePort(uint16_t port, const char* type) {
+  mesos::ContainerInfo::DockerInfo::PortMapping result;
+  result.set_host_port(port);
+  result.set_container_port(port);
+  result.set_protocol(type);
+  return result;
+}
+
+static std::string buildResourceString(
+    uint16_t rpcPort, uint16_t httpPort, uint16_t extraPort) {
+  std::string result = "ports:[" +
+          std::to_string(rpcPort) + "-" + std::to_string(rpcPort) +
+          "," + std::to_string(httpPort) + "-" + std::to_string(httpPort);
+  if (extraPort != 0) {
+    result += "," + std::to_string(extraPort) + "-" + std::to_string(extraPort);
+  }
+  return result + "]";
+}
+
+static mesos::TaskInfo prepareProberContainer(const std::string& framework_id) {
+  LOG_IF(FATAL, FLAGS_framework_image.empty()) << "Please specify --framework_image";
+
+  mesos::ContainerInfo containerInfo = createQbContainerInfo();
+  mesos::ContainerInfo::DockerInfo dockerInfo =
+      createQbDockerInfo(FLAGS_framework_image);
+//  dockerInfo.set_force_pull_image(true);
+  containerInfo.mutable_docker()->CopyFrom(dockerInfo);
+
+  mesos::CommandInfo command;
+  command.set_value("LD_LIBRARY_PATH=/opt MESOS_SLAVE_ID=$MESOS_SLAVE_ID /opt/quobyte-mesos-executor");
+  command.set_shell(true);
+
+  mesos::ExecutorInfo executor;
+  executor.mutable_executor_id()->set_value(
+      kExecutorId + framework_id);
+  executor.set_source("quobyte");
+  executor.mutable_container()->CopyFrom(containerInfo);
+  executor.mutable_command()->CopyFrom(command);
+
+  mesos::TaskInfo taskInfo;
+  taskInfo.mutable_executor()->CopyFrom(executor);
+  return taskInfo;
+}
+
 
 SchedulerStateProxy::SchedulerStateProxy(
     mesos::internal::state::State* state,
@@ -300,19 +422,21 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
     quobyte::NodeState& node_state = node->second;
     if (now() - node_state.prober().last_seen_s() >
             FLAGS_probe_executor_keepalive_interval_s &&
-        node_state.prober().state() != quobyte::ServiceState::RUNNING) {
+        node_state.prober().state() != quobyte::ServiceState::RUNNING &&
+        node_state.prober().state() != quobyte::ServiceState::STARTING) {
       if (remaining_resources.contains(resources_[PROBER_TASK])) {
         node->second.mutable_prober()->set_state(quobyte::ServiceState::STARTING);
         node->second.mutable_prober()->set_last_update_s(now());
         LOG(INFO) << "Starting prober on " << offer.hostname();
 
-        mesos::TaskInfo task;
+        mesos::TaskInfo task = prepareProberContainer(state_->framework_id());
         task.set_name("quobyte-device-prober");
         task.mutable_task_id()->set_value(
             "quobyte-device-prober-" + offer.hostname());
         task.mutable_slave_id()->MergeFrom(offer.slave_id());
         task.mutable_resources()->MergeFrom(resources_[PROBER_TASK]);
 
+#if 0
         mesos::CommandInfo command;
         command.set_shell(true);
         command.set_value("./quobyte-mesos-executor");
@@ -326,14 +450,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         mesos::Environment* env = command.mutable_environment();
         mesos::Environment::Variable* var = env->add_variables();
         var->set_name("LD_LIBRARY_PATH");
-        var->set_value(".");
-
-        mesos::ExecutorInfo executor;
-        executor.mutable_executor_id()->set_value(
-            kExecutorId + state_->framework_id());
-        executor.mutable_command()->CopyFrom(command);
-        executor.set_source("quobyte");
-        task.mutable_executor()->CopyFrom(executor);
+        var->set_value(".libs");
+#endif
 
         driver->launchTasks(offer.id(), std::vector<mesos::TaskInfo>({{task}}));
         continue;  // offer taken check next
@@ -649,104 +767,6 @@ void QuobyteScheduler::executorLost(mesos::SchedulerDriver* driver,
       << " on " << slaveID.ShortDebugString() << ": " << status;
 }
 
-static mesos::ContainerInfo createQbContainerInfo() {
-  mesos::ContainerInfo containerInfo;
-
-  containerInfo.set_type(mesos::ContainerInfo::DOCKER);
-  mesos::Volume* devicesVol = containerInfo.add_volumes();
-  // TODO(Silvan): make this configurable instead of hardcoded
-  devicesVol->set_container_path("/devices");
-  devicesVol->set_host_path(FLAGS_host_device_directory);
-  devicesVol->set_mode(mesos::Volume::RW);
-
-  return containerInfo;
-}
-
-mesos::ContainerInfo::DockerInfo QuobyteScheduler::createQbDockerInfo(
-    const std::string& docker_image_version) {
-  mesos::ContainerInfo::DockerInfo dockerInfo;
-
-  dockerInfo.set_privileged(true);
-#ifdef BRIDGE_NETWORKING
-  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::BRIDGE);
-#else
-  dockerInfo.set_network(mesos::ContainerInfo::DockerInfo::HOST);
-#endif
-  dockerInfo.set_image(FLAGS_docker_image + ":" + docker_image_version);
-
-/*
-  mesos::Parameter* param_i = dockerInfo.mutable_parameters()->Add();
-  param_i->set_key("interactive");
-  param_i->set_value("true");
-
-  mesos::Parameter* param_t = dockerInfo.mutable_parameters()->Add();
-  param_t->set_key("tty");
-  param_t->set_value("true");
-*/
-  return dockerInfo;
-}
-
-static std::string constructDockerExecuteCommand(
-    const std::string& service_name,
-    const std::string& host_name,
-    size_t rpcPort, size_t httpPort) {
-  std::ostringstream rcs;
-
-  rcs << "export QUOBYTE_SERVICE=" << service_name;
-  rcs << " && export QUOBYTE_REGISTRY="
-      << FLAGS_registry_dns_name << FLAGS_mesos_dns_domain;
-
-  if (rpcPort != 0) {
-    rcs << " && export QUOBYTE_RPC_PORT=" << rpcPort;
-  } else {
-    rcs << " && export QUOBYTE_RPC_PORT=$PORT0";
-  }
-
-  if (httpPort != 0) {
-    rcs << " && export QUOBYTE_HTTP_PORT=" << httpPort;
-  } else {
-    rcs << " && export QUOBYTE_HTTP_PORT=$PORT1";
-  }
-
-  if (service_name == "api") {
-    rcs << " && export QUOBYTE_API_PORT=" + std::to_string(FLAGS_api_port);
-  }
-  if (service_name == "webconsole") {
-    rcs << " && export QUOBYTE_WEBCONSOLE_PORT=" + std::to_string(FLAGS_webconsole_port);
-  }
-
-  rcs << " && export HOST_IP=$(dig +short " + host_name + ")";
-  if (!FLAGS_extra_service_config.empty()) {
-    rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
-        << FLAGS_extra_service_config;
-  }
-  rcs << " && /opt/main.sh";
-
-  VLOG(1) << "Constructed docker command: " << rcs.str() << "\n";
-
-  return rcs.str();
-}
-
-static mesos::ContainerInfo::DockerInfo::PortMapping
-    makePort(uint16_t port, const char* type) {
-  mesos::ContainerInfo::DockerInfo::PortMapping result;
-  result.set_host_port(port);
-  result.set_container_port(port);
-  result.set_protocol(type);
-  return result;
-}
-
-static std::string buildResourceString(
-    uint16_t rpcPort, uint16_t httpPort, uint16_t extraPort) {
-  std::string result = "ports:[" +
-          std::to_string(rpcPort) + "-" + std::to_string(rpcPort) +
-          "," + std::to_string(httpPort) + "-" + std::to_string(httpPort);
-  if (extraPort != 0) {
-    result += "," + std::to_string(extraPort) + "-" + std::to_string(extraPort);
-  }
-  return result + "]";
-}
-
 void QuobyteScheduler::prepareServiceResources(
     const std::string& service_id,
     uint16_t rpcPort,
@@ -785,7 +805,7 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   const std::string docker_image_version = state_->state().target_version();
   mesos::ContainerInfo containerInfo = createQbContainerInfo();
   mesos::ContainerInfo::DockerInfo dockerInfo =
-      createQbDockerInfo(docker_image_version);
+      createQbDockerInfo(FLAGS_docker_image + ":" + docker_image_version);
 
 #ifdef BRIDGE_NETWORKING
   // docker port std::mappings

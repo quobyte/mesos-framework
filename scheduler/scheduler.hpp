@@ -78,9 +78,6 @@ public:
                          const std::string& data);
 
  private:
-  static mesos::ContainerInfo::DockerInfo createQbDockerInfo(
-      const std::string& docker_image_version);
-
   mesos::TaskInfo makeTask(const std::string& service_id,
                            const std::string& name,
                            const std::string& task_id,
