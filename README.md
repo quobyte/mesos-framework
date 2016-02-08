@@ -59,7 +59,8 @@ The framework is currently configured via command line flags. The following flag
 * *--zk*: the Zookeeper URL
 * *--master*: the mesos master, usually as a Zookeeper URL
 * *--port*: port of the framework's built-in HTTP server with a console and API (default 7888).
-* *--docker_image*: the name of the docker image (without version): [registry:port|name]/image
+* *--docker_image*: the name of the Docker quobyte-server image (without version): [registry:port|name]/image
+* *--framework_image*: the name of the Docker quobyte-mesos image, usually quobyte/quobyte-mesos:latest 
 * *--mesos_dns_domain*: the subdomain where mesos-dns SRV records can be found. No leading dot.
 * *--registry_dns_name*: manually set the registry hosts, format: host:rpcport[,host:rpcport]. rpcport is usually 21000.
 * *--restrict_hosts*: comma-separated list of full mesos-agent hostnames
@@ -170,7 +171,7 @@ Limitations/Features:
 Desirable improvements:
 * Does not use mesos-dns for registry discovery yet as mesos-dns does not support multiple ports. (See [issue #61](https://github.com/mesosphere/mesos-dns/issues/61))
 * Rolling updates on version changes does not work yet, as Mesos does not export labels back to framework. (See [MESOS-4135](https://issues.apache.org/jira/browse/MESOS-4135))
-* Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports.
+* Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports. (See [MESOS-4485](https://issues.apache.org/jira/browse/MESOS-4485))
 
 References:
 ==========
