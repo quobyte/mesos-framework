@@ -28,7 +28,7 @@ const std::string WEBCONSOLE_TASK = "webconsole";
 
 const uint32_t kBufferSize = 100*1024*1024;
 
-DEFINE_int32(probe_interval_s, 60,
+DEFINE_int32(probe_interval_s, 120,
              "Device probe interval");
 DEFINE_int32(probe_executor_keepalive_interval_s, 60,
              "Device probe executor keep-alive interval");
@@ -36,11 +36,11 @@ DEFINE_int32(reconcile_service_interval_s, 60,
              "Reconcile service at least every n seconds");
 DEFINE_string(restrict_hosts, "",
               "Restrict scheduler to these hosts");
-DEFINE_string(docker_image, "dockerregistry.corp.quobyte.com:5000/quobyte-service",
+DEFINE_string(docker_image, "",
               "The docker image to run");
-DEFINE_string(registry_dns_name, "_registry._tcp.quobyte.slave",
+DEFINE_string(registry_dns_name, "",
               "Quobyte registry configuration");
-DEFINE_string(mesos_dns_domain, ".mesos",
+DEFINE_string(mesos_dns_domain, "",
               "Mesos DNS domain");
 DEFINE_string(registry_resources, "cpus:1.0;mem:2084;disk:32",
               "Resources for registry");
@@ -65,7 +65,8 @@ DEFINE_int32(port_range_base, 21000,
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
 DEFINE_int32(webconsole_port, 8888, "Webconsole HTTP port");
 
-DEFINE_string(framework_image, "", "Container name of the Quobyte framework");
+DEFINE_string(framework_image, "quobyte/quobyte-mesos:latest",
+              "Container name of the Quobyte framework");
 
 static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
@@ -154,6 +155,8 @@ static std::string constructDockerExecuteCommand(
     const std::string& host_name,
     size_t rpcPort, size_t httpPort) {
   std::ostringstream rcs;
+  LOG_IF(FATAL, FLAGS_registry_dns_name.empty())
+      << "Please set --registry_dns_name";
 
   rcs << "export QUOBYTE_SERVICE=" << service_name;
   rcs << " && export QUOBYTE_REGISTRY="
