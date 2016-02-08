@@ -61,7 +61,6 @@ The framework is currently configured via command line flags. The following flag
 * *--port*: port of the framework's built-in HTTP server with a console and API (default 7888).
 * *--docker_image*: the name of the Docker quobyte-server image (without version): [registry:port|name]/image
 * *--framework_image*: the name of the Docker quobyte-mesos image, usually quobyte/quobyte-mesos:latest 
-* *--mesos_dns_domain*: the subdomain where mesos-dns SRV records can be found. No leading dot.
 * *--registry_dns_name*: manually set the registry hosts, format: host:rpcport[,host:rpcport]. rpcport is usually 21000.
 * *--restrict_hosts*: comma-separated list of full mesos-agent hostnames
 * *--port_range_base*: the port range to use for service ports (10 ports will be allocated). Default is 21000.
