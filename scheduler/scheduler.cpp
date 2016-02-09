@@ -38,10 +38,10 @@ DEFINE_string(restrict_hosts, "",
               "Restrict scheduler to these hosts");
 DEFINE_string(docker_image, "",
               "The docker image to run");
-DEFINE_string(registry_dns_name, "",
+DEFINE_string(registry_dns_name, "_registry._tcp.quobyte.slave",
               "Quobyte registry configuration");
-DEFINE_string(mesos_dns_domain, "",
-              "Mesos DNS domain");
+DEFINE_string(mesos_dns_domain, ".mesos",
+              "Mesos DNS domain, with leading dot");
 DEFINE_string(registry_resources, "cpus:1.0;mem:2084;disk:32",
               "Resources for registry");
 DEFINE_string(metadata_resources, "cpus:2.0;mem:8192;disk:32",

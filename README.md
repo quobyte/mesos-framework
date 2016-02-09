@@ -70,7 +70,8 @@ The framework is currently configured via command line flags. The following flag
 
 If something goes wrong, the *--reset* flag might be helpful, which deletes the framework's state on Zookeeper.
 
-Make sure that --registry_dns_name is set to hosts on which you created registry devices.
+The default configuration relies on Mesos DNS. This solution is convenient but not perfect yet because of a limitation in Mesos DNS (see below).
+If you want to name registry servers explicitely, set --mesos_dns_domain="" and --registry_dns_name to the hosts (+ :21000) on which you created registry devices.
 
 Refer to the Quobyte documentation, specifically the Quick Start Guide on how to bootstrap registries.
 

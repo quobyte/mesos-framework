@@ -36,7 +36,7 @@ void QuobyteExecutor::disconnected(mesos::ExecutorDriver* driver) {
 void QuobyteExecutor::launchTask(
     mesos::ExecutorDriver* driver,
     const mesos::TaskInfo& task) {
-  std::cout << "launchTask" << std::endl;
+  std::cout << "launchTask " << task.ShortDebugString() << std::endl;
 
   mesos::TaskStatus status;
   status.mutable_task_id()->MergeFrom(task.task_id());
@@ -77,6 +77,21 @@ void QuobyteExecutor::frameworkMessage(
             found_types.insert(quobyte::METADATA);
           } else if (name == "data") {
             found_types.insert(quobyte::DATA);
+          }
+        }
+        const std::string setup_file_name = mntpoint + "/QUOBYTE_DEV_SETUP";
+        if (stat(setup_file_name.c_str(), &status) == 0) {
+          std::cout << "Introspecting " << setup_file_name << std::endl;
+          std::ifstream setupfile(setup_file_name);
+          std::string line;
+          while (std::getline(setupfile, line)) {
+            if (line == "device.type=DIR_DEVICE") {
+              found_types.insert(quobyte::REGISTRY);
+            } else if (line == "device.type=METADATA_DEVICE") {
+              found_types.insert(quobyte::METADATA);
+            } else if (line == "device.type=DATA_DEVICE") {
+              found_types.insert(quobyte::DATA);
+            }
           }
         }
       }
