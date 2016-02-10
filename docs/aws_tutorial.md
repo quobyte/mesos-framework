@@ -12,7 +12,7 @@ For this tutorial you will need the following:
 
 ## Fetch Quobyte docker images
 
-* contact [Quobyte support](support@quobyte.com) to get access to the Quobyte support repositories
+* contact [Quobyte](info@quobyte.com) to get access to the Quobyte support repositories
 * With the credentials received from that contact log into http://support.quobyte.com and navigate to
     * Release
         * Package Repositories
