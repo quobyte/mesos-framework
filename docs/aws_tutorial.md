@@ -12,12 +12,12 @@ For this tutorial you will need the following:
 
 ## Fetch Quobyte docker images
 
-* contact [Quobyte](info@quobyte.com) to get access to the Quobyte support repositories
+* contact [info@quobyte.com](mailto:info@quobyte.com) to get access to the Quobyte support repositories
 * With the credentials received from that contact log into http://support.quobyte.com and navigate to
     * Release
         * Package Repositories
             * quobyte-docker
-* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.3.tar.bzip2`` . Keep this at hand for later use during installation
+* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.3.tar.bzip2``. Keep this at hand for later use during installation
 
 ## Setting up AWS instances
 
@@ -28,7 +28,7 @@ For this tutorial you will need the following:
 
 ### Setup devices in AWS VMs
 
-On each node that shall be part of the Quobyte setup a device has to be marked for Quobyte. Follow these steps to prepare the different nodes for Quobyte:
+On each node that shall be part of the Quobyte setup a device has to be marked for Quobyte. In this tutorial we use a three node Quobyte setup. Follow these steps to prepare the different nodes for Quobyte:
 
 #### Fetch the Quobyte deployment tools you will need later on:
 
@@ -64,7 +64,7 @@ dcos node
 
 From the resulting list select three slave nodes for further installation. Please note that you may choose an arbitrary number of nodes (at least one) but for simplicity reasons this tutorial uses three Quobyte nodes.
 
-Now copy the deployment tools and image to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example line looks like this:
+Now copy the deployment tools and image to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example looks like this:
 
 ```
 scp -r ~/tmp/quobyte-deploy-master/tools core@10.0.0.185:/home/core/
@@ -121,7 +121,7 @@ Exactly one single device in the cluster is marked as the initial startup Quobyt
 sudo ~/tools/qbootstrap /mnt/quobyte_registry
 ```
 
-Please note that there will be a warning about qbootstrap beeing unable to access the smartctl binary and to change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
+Please note that there will be a warning about qbootstrap beeing unable to access the smartctl binary and not beeing able to change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
 
 #### Mark all other devices in the cluster according to their type
 
@@ -176,4 +176,4 @@ Documentation: https://support.quobyte.com/
 dcos quobyte start --release=VERSION --host=http://MASTER_NODE_NAME/service/quobyte/
 ```
 
-Following this command the Quobyte framework starts running the different services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
+Following this command the Quobyte framework starts running the different Quobyte services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
