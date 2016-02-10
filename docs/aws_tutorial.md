@@ -1,10 +1,8 @@
-Quobyte DCOS Installation Tutorial
-==================================
+# Quobyte DCOS Installation Tutorial
 
 How to install the Quobyte framework for Apache Mesos / Mesosphere DCOS on Amazon Web Services.
 
-Requirements
-------------
+## Requirements
 
 For this tutorial you will need the following:
 * An Amazon AWS account 
@@ -12,8 +10,16 @@ For this tutorial you will need the following:
 * An email address to register with Mesosphere for DCOS testing
 * Basic knowledge on how to use a shell environment with sudo commands
 
-Setting up AWS instances
-------------------------
+## Fetch Quobyte docker images
+
+* contact [Quobyte support](support@quobyte.com) to get access to the Quobyte support repositories
+* With the credentials received from that contact log into http://support.quobyte.com and navigate to
+    * Release
+        * Package Repositories
+            * quobyte-docker
+* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.3.tar.bzip2`` . Keep this at hand for later use during installation
+
+## Setting up AWS instances
 
 * Setup AWS Cloud Formation Template from Mesosphere
     * Follow https://mesosphere.com/amazon/setup/
@@ -33,26 +39,24 @@ dcos node ssh --master-proxy --master
 ```
 
 * Download the Quobyte deployment tools at https://github.com/quobyte/quobyte-deploy . These tools need to be run on the intended Quobyte nodes but we use the master for central download and distribution to the other DCOS slave nodes.
-
-```
-wget https://github.com/quobyte/quobyte-deploy/archive/master.zip
-```
-
 * Unpack the archive file to a local tmp directory
+* Download the ``quobyte-server-image_VERSION.tar.bzip2`` file from your Quobyte repository to the master node
 
+(You can use the following example via copy paste if you replace ``YOUR_REPO_ID`` with the ID from your repo url and ``VERSION`` in the file name with the latest version available in your repo.)
 ```
 mkdir ./tmp
-mv master.zip ./tmp/
 cd ./tmp
+wget https://github.com/quobyte/quobyte-deploy/archive/master.zip
 unzip ./master.zip
+wget https://support.quobyte.com/repo/2/YOUR_REPO_ID/quobyte-docker/quobyte-server-image_VERSION.tar.bzip2
 ```
 
-* Now the required tools are available at ~/tmp/quobyte-deploy-master/tools/ on the master node and the different nodes can be prepared.
+* Now the required tools (~/tmp/quobyte-deploy-master/tools/) and image (~/tmp/quobyte-server-image_VERSION.tar.bzip2) are available on the master node and the different slave nodes can be prepared.
 
 
-#### Distribute the deployment tools to three DCOS slave nodes that will later make up our Quobyte example installation
+#### Distribute the deployment tools and docker image to three DCOS slave nodes that will later make up our Quobyte example installation
 
-The tools on the master now can be distributed to the three nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
+The tools and image on the master can now be distributed to the three nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
 
 ```
 dcos node 
@@ -60,14 +64,15 @@ dcos node
 
 From the resulting list select three slave nodes for further installation. Please note that you may choose an arbitrary number of nodes (at least one) but for simplicity reasons this tutorial uses three Quobyte nodes.
 
-Now copy the deployment tools to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example line looks like this:
+Now copy the deployment tools and image to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example line looks like this:
 
 ```
-scp -r ~/tmp/quobte-deploy-master/tools core@10.0.0.185:/home/core/
+scp -r ~/tmp/quobyte-deploy-master/tools core@10.0.0.185:/home/core/
+scp ~/tmp/quobyte-server-image_1.2.3.tar.bzip2 core@10.0.0.185:/home/core/
 
 ```
 
-Now the deployment tools are in place on the involved nodes, located at /home/core/tools .
+Now the deployment tools and image are in place on the involved nodes, located at /home/core/tools for the Quobyte tools.
 
 #### Create local device mounts on three nodes that will be used as Quobyte hosts
 
@@ -79,59 +84,62 @@ For each of those nodes execute the following:
 ssh <node ip address>
 ```
 
+Then take the following steps (as shown in the example below):
 * Create /home/quobyte_device and /mnt/quobyte_device:
-
-```
-sudo mkdir /home/quobyte_device
-sudo mkdir /mnt/quobyte_device
-```
-
 * Create a local device mount:
-
-```    
-sudo mount --bind /home/quobyte_device /mnt/quobyte_device
-```
-
-Please note that the mount --bind construction is used for testing purposes here. This will not be used with real devices or AWS EBS volumes used as Quobyte devices.
-
 * Allow access for all users on volume mount points
+* Import the docker image into the local docker daemon repository
 
+(You can copy & paste the following example if you adopt ``VERSION`` to your docker image file version.)
 ```
-sudo chmod 777 /mnt/quobyte_device
+sudo mkdir /home/quobyte_registry
+sudo mkdir /mnt/quobyte_registry
+sudo mount --bind /home/quobyte_registry /mnt/quobyte_registry
+sudo mkdir /home/quobyte_metadata
+sudo mkdir /mnt/quobyte_metadata
+sudo mount --bind /home/quobyte_metadata /mnt/quobyte_metadata
+sudo mkdir /home/quobyte_data
+sudo mkdir /mnt/quobyte_data
+sudo mount --bind /home/quobyte_data /mnt/quobyte_data
+sudo chmod 777 /mnt/quobyte_registry
+sudo chmod 777 /mnt/quobyte_metadata
+sudo chmod 777 /mnt/quobyte_data
+docker load -i quobyte-server-image_VERSION.tar.bzip2
+docker tag quobyte-server:latest quobyte-server:VERSION
 ```
+
+Please note that the mount --bind construction is used for testing purposes here. This will not be used with real devices or AWS EBS volumes that are used as Quobyte devices.
 
 #### Bootstrap a single device in the cluster
 
-Exactly one single device in the cluster is marked as the initial startup Quobyte Registry. This is done by running the qbootstrap tool on one of the previously set up devices. You can safely select one randomly.
+Exactly one single device in the cluster is marked as the initial startup Quobyte Registry. This is done by running the qbootstrap tool on one of the previously set up quobyte_registry mounts on one single node. You can safely select one randomly.
+
+* Log into the selected node that will host the bootstrap Quobyte registry.
+* Run the qbootstrap tool on the ``/mnt/quobyte_registry`` mount
 
 ```
-sudo ~/tools/qbootstrap /mnt/quobyte_device
+sudo ~/tools/qbootstrap /mnt/quobyte_registry
 ```
 
-Please note that there will be a warning about qbootstrap beeing unable to change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
+Please note that there will be a warning about qbootstrap beeing unable to access the smartctl binary and to change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
 
-#### Mark the other devices in the cluster as Metadata or Data devices
+#### Mark all other devices in the cluster according to their type
 
-Following up the other previously created devices are marked as Metadata and Data devices for Quobyte on the other two nodes.
+Following up the other previously created devices are marked as Metadata and Data devices for Quobyte on the node bootstrapped above, as well as Registry, Metadata and Data devices on the other two nodes.
 
-The Metadata device is marked with qmkdev on a second node
+* Mark Metadata and Data devices on the current node (where ``/mnt/quobyte_registry`` has already been bootstrapped)
+* Log into the other two nodes and mark Registry, Metadata and Data devices using the ``qmkdev`` tool
 
+The devices are marked according to type with qmkdev as follows:
 ```
-sudo ~/tools/qmkdev -t DATA /mnt/quobyte_device
-```
-
-The Data device is marked with qmkdev on a third node
-
-```
-sudo ~/tools/qmkdev -t DATA /mnt/quobyte_device
+sudo ~/tools/qmkdev -t REGISTRY /mnt/quobyte_registry
+sudo ~/tools/qmkdev -t METADATA /mnt/quobyte_metadata
+sudo ~/tools/qmkdev -t DATA /mnt/quobyte_data
 ```
 
-Please note that there will be a warning about qmkdev beeing unable to access the smartctl binary and, similar to qbootstrap, change the owner of the mount point to quobyte:quobyte . This is expected in this tutorial.
+Please note that there will be a warning about qmkdev beeing unable to access the smartctl binary and change the owner of the mount point to quobyte:quobyte (similar to qbootstrap). This is expected in this tutorial.
 
-Furthermore, note that you can add more devices using qmkdev (**NOT qbootstrap!**) for all three types (Registry, Metadata, Data) if you prepared more nodes, e.g. in the local device mounts step above.
-
-
-* Exit from the ssh remote shells, execute exit on all nodes:
+* You may exit from the ssh remote shells, execute exit on all nodes:
 
 ```
 exit
@@ -156,9 +164,16 @@ Quobyte has been successfully installed!
 Documentation: https://support.quobyte.com/
 ```
 
-* Review the Quobyte framework details in the marathon webui of your DCOS AWS installation
-* Open the Quobyte Webconsole
-    * TBD: how to fetch / construct URL
-* TBD: update operation
-* TBD: stop operation
-* TBD: (re-) start operation
+
+### Start Quobyte on your cluster
+
+* Note/copy your DCOS master nodes host name for later use in the following steps
+* Upon installation the framework will start probing and locating the devices created earlier in this tutorial. This will take a few minutes. You can review the results at the frameworks web ui located at ``http://MASTER_NODE_NAME/service/quobyte/``. This will show the devices located on the different nodes but currently no services running.
+* Start up the Quobyte services by running the following command via DCOS:
+
+(You can copy & paste the following command if you set the ``VERSION`` from the previously installed Quobyte docker image file and ``MASTER_NODE_NAME`` according to your DCOS master host name.)
+```
+dcos quobyte start --release=VERSION --host=http://MASTER_NODE_NAME/service/quobyte/
+```
+
+Following this command the Quobyte framework starts running the different services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
