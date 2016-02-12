@@ -38,7 +38,7 @@ DEFINE_string(restrict_hosts, "",
               "Restrict scheduler to these hosts");
 DEFINE_string(docker_image, "",
               "The docker image to run");
-DEFINE_string(registry_dns_name, "_registry._tcp.quobyte.slave",
+DEFINE_string(registry_dns_name, "_registry._tcp.quobyte",
               "Quobyte registry configuration");
 DEFINE_string(mesos_dns_domain, ".mesos",
               "Mesos DNS domain, with leading dot");
@@ -850,6 +850,7 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   port0->set_name("rpc");
   port0->set_protocol("tcp");
 
+#if 0  /* sigh */
   mesos::Port* port1 = discovery->mutable_ports()->add_ports();
   port1->set_number(httpPort);
   port1->set_name("httpstatus");
@@ -866,6 +867,7 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
     port2->set_name("http");
     port2->set_protocol("tcp");
   }
+#endif
 
   LOG(INFO) << "Launching " << taskInfo.DebugString();
 
