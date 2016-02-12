@@ -10,7 +10,6 @@ ADD scheduler/quobyte-mesos /opt/quobyte-mesos
 # COPY executor/executor.tar.gz /opt/executor/executor.tar.gz
 COPY executor/quobyte-mesos-executor /opt/quobyte-mesos-executor
 ADD thirdparty/mesos/build/src/.libs/libmesos-*.so /opt/
-ADD quobyte-mesos.sh /opt/quobyte-mesos.sh
 ADD quobyte-mesos-cmd.sh /opt/quobyte-mesos-cmd.sh
 
-CMD ["/opt/quobyte-mesos.sh"]
+CMD ["/opt/quobyte-mesos-cmd.sh"]
