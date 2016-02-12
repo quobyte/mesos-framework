@@ -176,4 +176,10 @@ Documentation: https://support.quobyte.com/
 dcos quobyte start --release=VERSION --host=http://MASTER_NODE_NAME/service/quobyte/
 ```
 
+Please note that this commands currently returns an error code 502 despite the framework starting correctly. We'll remove this issue soon.
+
 Following this command the Quobyte framework starts running the different Quobyte services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
+
+### Use and manage your Quobyte cluster
+
+*TBC soon*

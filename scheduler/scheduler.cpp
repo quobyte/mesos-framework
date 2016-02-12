@@ -47,7 +47,7 @@ DEFINE_string(registry_resources, "cpus:1.0;mem:2084;disk:32",
 DEFINE_string(metadata_resources, "cpus:2.0;mem:8192;disk:32",
               "Resources for metadata");
 DEFINE_string(data_resources, "cpus:4.0;mem:4096;disk:32",
-              "Resources for metadata");
+              "Resources for data");
 DEFINE_string(prober_resources, "cpus:0.1;mem:256;disk:150",
               "Resources for prober");
 DEFINE_string(api_resources, "cpus:0.1;mem:512;disk:32",
