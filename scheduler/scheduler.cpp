@@ -839,9 +839,33 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   version->set_value(docker_image_version);
 
   mesos::DiscoveryInfo* discovery = taskInfo.mutable_discovery();
-  discovery->set_visibility(mesos::DiscoveryInfo::FRAMEWORK);
+  discovery->set_visibility(mesos::DiscoveryInfo::EXTERNAL);
   discovery->set_name(service_id);
   discovery->set_version(docker_image_version);
+
+  *discovery->mutable_labels()->add_labels() = *version;
+
+  mesos::Port* port0 = discovery->mutable_ports()->add_ports();
+  port0->set_number(rpcPort);
+  port0->set_name("rpc");
+  port0->set_protocol("tcp");
+
+  mesos::Port* port1 = discovery->mutable_ports()->add_ports();
+  port1->set_number(httpPort);
+  port1->set_name("httpstatus");
+  port1->set_protocol("tcp");
+
+  if (service_id == "api") {
+    mesos::Port* port2 = discovery->mutable_ports()->add_ports();
+    port2->set_number(FLAGS_api_port);
+    port2->set_name("http");
+    port2->set_protocol("tcp");
+  } else if (service_id == "webconsole") {
+    mesos::Port* port2 = discovery->mutable_ports()->add_ports();
+    port2->set_number(FLAGS_webconsole_port);
+    port2->set_name("http");
+    port2->set_protocol("tcp");
+  }
 
   LOG(INFO) << "Launching " << taskInfo.DebugString();
 
