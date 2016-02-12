@@ -105,6 +105,9 @@ Running the Framework on Marathon
 }
 ```
 
+
+A more detailed tutorial explains [how to install the framework with DCOS on AWS instances](https://github.com/quobyte/mesos-framework/blob/master/docs/aws_tutorial.md).
+
 Control the framework
 ---------------------
 
