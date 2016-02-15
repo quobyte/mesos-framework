@@ -64,9 +64,10 @@ DEFINE_int32(port_range_base, 21000,
              "Where to start allocating ports (10 required currently). This very port will be used for the registry RPC port.");
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
 DEFINE_int32(webconsole_port, 8888, "Webconsole HTTP port");
-
 DEFINE_string(framework_image, "quobyte/quobyte-mesos:latest",
               "Container name of the Quobyte framework");
+DEFINE_string(public_slave_role, "",
+              "Role name for slaves that receive Console and API");
 
 static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
@@ -483,7 +484,9 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
     if (!state_->state().target_version().empty()) {
       std::vector<mesos::TaskInfo> tasks_to_start;
       if (remaining_resources.contains(resources_[API_TASK]) &&
-          DoStartService(api_state_.state())) {
+          DoStartService(api_state_.state()) &&
+          (FLAGS_public_slave_role.empty() ||
+           remaining_resources.reserved().count(FLAGS_public_slave_role) > 0)) {
         remaining_resources -= resources_[API_TASK];
         tasks_to_start.push_back(
             makeTask(API_TASK,
@@ -497,7 +500,9 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         api_state_.set_task_id("quobyte-api-" + offer.hostname());
       }
       if (remaining_resources.contains(resources_[WEBCONSOLE_TASK]) &&
-          DoStartService(console_state_.state())) {
+          DoStartService(console_state_.state()) &&
+          (FLAGS_public_slave_role.empty() ||
+           remaining_resources.reserved().count(FLAGS_public_slave_role) > 0)) {
         remaining_resources -= resources_[WEBCONSOLE_TASK];
         tasks_to_start.push_back(
             makeTask(WEBCONSOLE_TASK,
