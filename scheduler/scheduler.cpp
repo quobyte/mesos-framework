@@ -874,6 +874,27 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   return taskInfo;
 }
 
+static std::string renderService(
+    const std::string& name,
+    bool has_device,
+    const quobyte::NodeState& node,
+    const quobyte::ServiceState& service) {
+  std::string device_msg = "no device";
+  if (!node.device_types_valid()) {
+    device_msg = "waiting for prober";
+  }
+
+  std::string extra;
+  if (has_device && service.state() != quobyte::ServiceState::RUNNING) {
+    extra = "style='background-color: yellow'";
+  }
+
+  return std::string("<tr><td>") + name + ": </td><td>"
+      + (has_device ? "found" : device_msg)
+      + " <span title=\"" +  service.last_message() + "\" " + extra + ">\n"
+      + ServiceState_TaskState_Name(service.state()) + "</span></td></tr>\n";
+}
+
 std::string QuobyteScheduler::handleHTTP(
     const std::string& method,
     const std::string& path,
@@ -933,18 +954,10 @@ std::string QuobyteScheduler::handleHTTP(
         device_msg = "waiting for prober";
       }
       result += "<table><tbody>";
-      result +=
-          std::string("<tr><td>Registry: </td><td>") + (device_types.count(quobyte::DeviceType::REGISTRY) > 0 ? "found" : device_msg)
-          + " <span title=\"" +  node.second.registry().last_message() + "\">" + "\n"
-          + ServiceState_TaskState_Name(node.second.registry().state()) + "</span>"+ "</td></tr>\n"
-          + "<tr><td>Metadata: </td><td>" + (device_types.count(quobyte::DeviceType::METADATA) > 0 ? "found" : device_msg)
-          + " <span title=\"" +  node.second.metadata().last_message() + "\">"+ "\n"
-          + ServiceState_TaskState_Name(node.second.metadata().state()) + "</span>"+ "</td></tr>\n"
-          + "<tr><td>Data: </td><td>" + (device_types.count(quobyte::DeviceType::DATA) > 0 ? "found" : device_msg)
-          + " <span title=\"" +  node.second.data().last_message() + "\">"+ "\n"
-          + ServiceState_TaskState_Name(node.second.data().state()) + "</span>"+ "</td></tr>\n"
-          + "</tbody></table><div class=\"details\"><pre>" + node.second.DebugString() + "</pre></div>\n\n";
-
+      result += renderService("Registry", device_types.count(quobyte::DeviceType::REGISTRY) > 0, node.second, node.second.registry());
+      result += renderService("Data", device_types.count(quobyte::DeviceType::DATA) > 0, node.second, node.second.data());
+      result += renderService("Metadata", device_types.count(quobyte::DeviceType::METADATA) > 0, node.second, node.second.metadata());
+      result += "</table></tbody>";
       result += "</div>\n";
     }
 
