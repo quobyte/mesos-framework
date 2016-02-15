@@ -17,7 +17,8 @@ For this tutorial you will need the following:
     * Release
         * Package Repositories
             * quobyte-docker
-* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.3.tar.bzip2``. Keep this at hand for later use during installation
+* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.5.tar.bzip2``. Keep this at hand for later use during installation
+* Note: this tutorial requires **Quobyte version 1.2.5 or later**
 
 ## Setting up AWS instances
 
@@ -164,11 +165,11 @@ Quobyte has been successfully installed!
 Documentation: https://support.quobyte.com/
 ```
 
+Upon installation the framework will start probing and locating the devices created earlier in this tutorial. This will take a minute. You can review the process in Mesos at ``http://MASTER_NODE_NAME`` and the results at the frameworks web ui located at ``http://MASTER_NODE_NAME/service/quobyte/``. This will show the devices located on the different nodes but currently no services running.
 
 ### Start Quobyte on your cluster
 
 * Note/copy your DCOS master nodes host name for later use in the following steps
-* Upon installation the framework will start probing and locating the devices created earlier in this tutorial. This will take a few minutes. You can review the results at the frameworks web ui located at ``http://MASTER_NODE_NAME/service/quobyte/``. This will show the devices located on the different nodes but currently no services running.
 * Start up the Quobyte services by running the following command via DCOS:
 
 (You can copy & paste the following command if you set the ``VERSION`` from the previously installed Quobyte docker image file and ``MASTER_NODE_NAME`` according to your DCOS master host name.)
