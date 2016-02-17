@@ -57,15 +57,13 @@ wget https://support.quobyte.com/repo/2/YOUR_REPO_ID/quobyte-docker/quobyte-serv
 
 #### Distribute the deployment tools and docker image to three DCOS slave nodes that will later make up our Quobyte example installation
 
-The tools and image on the master can now be distributed to the three nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
+The tools and image on the master can now be distributed to the nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
 
 ```
 dcos node 
 ```
 
-From the resulting list select three slave nodes for further installation. Please note that you may choose an arbitrary number of nodes (at least one) but for simplicity reasons this tutorial uses three Quobyte nodes.
-
-Now copy the deployment tools and image to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing. An example looks like this:
+Now copy the image to all these nodes. Use the scp command and the IPs derived from the previous dcos node listing (Alternatively you can deploy a private docker registry in your DCOS cluster). An example looks like this:
 
 ```
 scp -r ~/tmp/quobyte-deploy-master/tools core@10.0.0.185:/home/core/
@@ -76,6 +74,8 @@ scp ~/tmp/quobyte-server-image_1.2.3.tar.bzip2 core@10.0.0.185:/home/core/
 Now the deployment tools and image are in place on the involved nodes, located at /home/core/tools for the Quobyte tools.
 
 #### Create local device mounts on three nodes that will be used as Quobyte hosts
+
+From the list of nodes select three slave nodes for further installation. Please note that you may choose an arbitrary number of nodes (at least one) but for simplicity reasons this tutorial uses three Quobyte nodes.
 
 For each of those nodes execute the following:
 
@@ -183,4 +183,58 @@ Following this command the Quobyte framework starts running the different Quobyt
 
 ### Use and manage your Quobyte cluster
 
-*TBC soon*
+In order to access the Quobyte Webconsole service from outside the cluster you can deploy a service instance via marathon onto a public slave. Use the following JSON config, set the required Quobyte version in the ``image`` tag and run this via marathon. Make sure the ``quobyte-server`` is available to the docker daemons.
+
+```
+{
+   "id":"quobyte-webconsole",
+   "cmd":"export QUOBYTE_SERVICE=webconsole && export QUOBYTE_REGISTRY=_registry._tcp.quobyte.mesos && export QUOBYTE_RPC_PORT=21008 && export QUOBYTE_HTTP_PORT=21009 && export QUOBYTE_WEBCONSOLE_PORT=8888 && export HOST_IP=$(dig +short $HOSTNAME) && /opt/main.sh",
+   "instances":1,
+   "cpus":0.5,
+   "mem":512.0,
+   "acceptedResourceRoles": ["slave_public"],
+   "ports":[8888],
+   "requirePorts": true,
+   "container": {
+    "type": "DOCKER",
+    "docker": {
+      "forcePullImage": false,
+      "image": "quobyte/quobyte-server:<VERSION>",
+      "network": "HOST",
+      "privileged": true
+    }
+  }
+}
+
+```
+
+Deploy this configuration via ``dcos marathon``:
+
+```
+dcos marathon app add /path/to/webconsole/json/file
+```
+
+The same holds true if you want to access the Quobyte API from outside the cluster. Apply belows configuration similar to the Webconsole service described above.
+
+```
+{
+   "id":"quobyte-api",
+   "cmd":"export QUOBYTE_SERVICE=api && export QUOBYTE_REGISTRY=_registry._tcp.quobyte.mesos && export QUOBYTE_RPC_PORT=21006 && export QUOBYTE_HTTP_PORT=21007 && export HOST_IP=$(dig +short $HOSTNAME) && /opt/main.sh",
+   "instances":1,
+   "cpus":0.1,
+   "mem":512.0,
+   "acceptedResourceRoles": ["slave_public"],
+   "ports":[21006],
+   "requirePorts": true,
+   "container": {
+    "type": "DOCKER",
+    "docker": {
+      "forcePullImage": false,
+      "image": "quobyte/quobyte-server:<VERSION>",
+      "network": "HOST",
+      "privileged": true
+    }
+  }
+}
+
+```
