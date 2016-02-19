@@ -20,6 +20,8 @@ Two additional services provide access to the system's management interface:
 * API Service: JSONRPC API service for third-party software
 * Webconsole: user interface for monitoring and managing the Quobyte system
 
+The framework is also prepared to start a Quobyte client in a container that mounts the Quobyte volume namespace in /quobyte on the host. From there individual volumes and directories can be mapped into containers.
+
 Dependencies:
 =============
 * mesos-dns. Keep your mesos subdomain at hand for further setup.
@@ -51,6 +53,11 @@ Pick one device that will run the registry initially and run *qbootstrap*. You n
 one data device.
 
 On AWS or GCE attach the devices across one or several instances.
+
+Setup Client Mount
+------------------
+
+Create a directory /quobyte on all hosts that should receive a Quobyte mount point.
 
 Configure Framework
 -------------------
@@ -174,7 +181,8 @@ Limitations/Features:
 Desirable improvements:
 * Does not use mesos-dns for registry discovery yet as mesos-dns does not support multiple ports. (See [issue #61](https://github.com/mesosphere/mesos-dns/issues/61))
 * Rolling updates on version changes does not work yet, as Mesos does not export labels back to framework. (See [MESOS-4135](https://issues.apache.org/jira/browse/MESOS-4135))
-* Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports. (See [MESOS-4485](https://issues.apache.org/jira/browse/MESOS-4485))
+* Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports. (See [MESOS-4485](https://issues.apache.org/jira/browse/MESOS-4485)).
+* Automatic /quobyte client mounts. This is implemented, but needs support from Mesos (See [MESOS-4717](https://issues.apache.org/jira/browse/MESOS-4717)).
 
 References:
 ==========

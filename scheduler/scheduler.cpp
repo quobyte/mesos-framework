@@ -25,6 +25,7 @@ const std::string METADATA_TASK = "metadata";
 const std::string DATA_TASK = "data";
 const std::string API_TASK = "api";
 const std::string WEBCONSOLE_TASK = "webconsole";
+const std::string CLIENT_TASK = "client";
 
 const uint32_t kBufferSize = 100*1024*1024;
 
@@ -50,6 +51,8 @@ DEFINE_string(data_resources, "cpus:4.0;mem:4096;disk:32",
               "Resources for data");
 DEFINE_string(prober_resources, "cpus:0.1;mem:256;disk:150",
               "Resources for prober");
+DEFINE_string(client_resources, "cpus:2.0;mem:2048;disk:150",
+              "Resources for prober");
 DEFINE_string(api_resources, "cpus:0.1;mem:512;disk:32",
               "Resources for api");
 DEFINE_string(webconsole_resources, "cpus:0.5;mem:512;disk:32",
@@ -65,7 +68,9 @@ DEFINE_int32(port_range_base, 21000,
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
 DEFINE_int32(webconsole_port, 8888, "Webconsole HTTP port");
 DEFINE_string(framework_image, "quobyte/quobyte-mesos:latest",
-              "Container name of the Quobyte framework");
+              "Docker image name of the Quobyte framework");
+DEFINE_string(client_image, "",
+              "Docker image name of the Quobyte client");
 DEFINE_string(public_slave_role, "",
               "Role name for slaves that receive Console and API");
 
@@ -214,7 +219,7 @@ static std::string buildResourceString(
   return result + "]";
 }
 
-static mesos::TaskInfo prepareProberContainer(const std::string& framework_id) {
+static mesos::TaskInfo createProberTaskInfo(const std::string& framework_id) {
   LOG_IF(FATAL, FLAGS_framework_image.empty()) << "Please specify --framework_image";
 
   mesos::ContainerInfo containerInfo = createQbContainerInfo();
@@ -236,6 +241,28 @@ static mesos::TaskInfo prepareProberContainer(const std::string& framework_id) {
 
   mesos::TaskInfo taskInfo;
   taskInfo.mutable_executor()->CopyFrom(executor);
+  return taskInfo;
+}
+
+static mesos::TaskInfo createClientTaskInfo() {
+  mesos::ContainerInfo containerInfo;
+
+  containerInfo.set_type(mesos::ContainerInfo::DOCKER);
+  mesos::Volume* devicesVol = containerInfo.add_volumes();
+  devicesVol->set_container_path("/quobyte");
+  devicesVol->set_host_path(FLAGS_host_device_directory);
+  devicesVol->set_mode(mesos::Volume::RW);
+
+  mesos::ContainerInfo::DockerInfo dockerInfo =
+      createQbDockerInfo(FLAGS_client_image);
+  mesos::Parameter* env = dockerInfo.add_parameters();
+  env->set_key("e");
+  env->set_value("QUOBYTE_REGISTRY=" + FLAGS_registry_dns_name + FLAGS_mesos_dns_domain);
+  containerInfo.mutable_docker()->CopyFrom(dockerInfo);
+
+  mesos::TaskInfo taskInfo;
+  taskInfo.mutable_container()->CopyFrom(containerInfo);
+
   return taskInfo;
 }
 
@@ -330,6 +357,11 @@ QuobyteScheduler::QuobyteScheduler(
       mesos::Resources::parse(
           FLAGS_prober_resources).get();
   resources_.emplace(PROBER_TASK, prober_resources);
+
+  mesos::Resources client_resources =
+      mesos::Resources::parse(
+          FLAGS_client_resources).get();
+  resources_.emplace(CLIENT_TASK, client_resources);
 }
 
 void QuobyteScheduler::registered(mesos::SchedulerDriver* driver,
@@ -433,7 +465,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         node->second.mutable_prober()->set_last_update_s(now());
         LOG(INFO) << "Starting prober on " << offer.hostname();
 
-        mesos::TaskInfo task = prepareProberContainer(state_->framework_id());
+        mesos::TaskInfo task = createProberTaskInfo(state_->framework_id());
         task.set_name("quobyte-device-prober");
         task.mutable_task_id()->set_value(
             "quobyte-device-prober-" + offer.hostname());
@@ -514,6 +546,18 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                      offer.slave_id()));
         console_state_.set_state(quobyte::ServiceState::RUNNING);
         console_state_.set_task_id("quobyte-webconsole-" + offer.hostname());
+      }
+      if (remaining_resources.contains(resources_[CLIENT_TASK]) &&
+          DoStartService(node_state.client().state()) &&
+          node_state.client_mount_point()) {
+        remaining_resources -= resources_[CLIENT_TASK];
+        mesos::TaskInfo task = createClientTaskInfo();
+        task.set_name("quobyte-client");
+        task.mutable_task_id()->set_value("quobyte-client-" + offer.hostname());
+        task.mutable_slave_id()->set_value(offer.slave_id().value());
+        tasks_to_start.push_back(task);
+        node_state.mutable_client()->set_state(quobyte::ServiceState::RUNNING);
+        node_state.mutable_client()->set_task_id("quobyte-client-" + offer.hostname());
       }
 
       for (auto device_type : node_state.device_type()) {
@@ -633,6 +677,8 @@ quobyte::ServiceState* QuobyteScheduler::getService(
     return &api_state_;
   } else if (service == "quobyte-webconsole") {
     return &console_state_;
+  } else if (service == "quobyte-client") {
+    return node->mutable_client();
   } else {
     return NULL;
   }
@@ -686,6 +732,9 @@ void QuobyteScheduler::statusUpdate(mesos::SchedulerDriver* driver,
         service_should_run = false;
       } else if (service == "quobyte-data" &&
                  device_types.count(quobyte::DeviceType::DATA) == 0) {
+        service_should_run = false;
+      } else if (service == "quobyte-client" &&
+                 !node->second.client_mount_point()) {
         service_should_run = false;
       }
     }
@@ -761,6 +810,7 @@ void QuobyteScheduler::frameworkMessage(mesos::SchedulerDriver* driver,
           << " " << response.ShortDebugString();
       node.second.mutable_device_type()->CopyFrom(response.device_type());
       // We also know that the executor is alive
+      node.second.set_client_mount_point(response.client_mount_point());
       node.second.mutable_prober()->set_last_seen_s(now());
       node.second.set_device_types_valid(true);
     }
