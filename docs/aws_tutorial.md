@@ -106,7 +106,12 @@ sudo chmod 777 /mnt/quobyte_registry
 sudo chmod 777 /mnt/quobyte_metadata
 sudo chmod 777 /mnt/quobyte_data
 docker load -i quobyte-server-image_VERSION.tar.bzip2
-docker tag quobyte-server:latest quobyte-server:VERSION
+```
+
+Quobyte docker images come with a version hash tag. After the image has been loaded (see last line above) the new image is tagged according to the Quobyte version you downloaded:
+
+```
+docker tag quobyte-server:<latest_hash> quobyte-server:VERSION
 ```
 
 Please note that the mount --bind construction is used for testing purposes here. This will not be used with real devices or AWS EBS volumes that are used as Quobyte devices.
