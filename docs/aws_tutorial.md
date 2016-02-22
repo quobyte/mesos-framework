@@ -169,6 +169,8 @@ Upon installation the framework will start probing and locating the devices crea
 
 ### Start Quobyte on your cluster
 
+After the Quobyte DCOS package has been installed the Quobyte Mesos framework in your cluster starts probing the cluster for the Quobyte devices you marked earlier. This may take a few minutes. With the devices detected you can now start the Quobyte services.
+
 * Note/copy your DCOS master nodes host name for later use in the following steps
 * Start up the Quobyte services by running the following command via DCOS:
 
@@ -177,15 +179,23 @@ Upon installation the framework will start probing and locating the devices crea
 dcos quobyte start --release=VERSION --host=http://MASTER_NODE_NAME/service/quobyte/
 ```
 
-Please note that this commands currently returns an error code 502 despite the framework starting correctly. We'll remove this issue soon.
+Please note that this command currently returns an error code 502, although the framework is starting correctly. This issue will be removed in a future release.
 
 Following this command the Quobyte framework starts running the different Quobyte services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
 
 ### Use and manage your Quobyte cluster
-Now you can user Quobyte in your DCOS cluster. In order to do so you can use the Quobyte cli tools from within DCOS or access the Quobyte Webconsole service. This can be done right away by using a SSH tunnel with forwarding:
+Now you can user Quobyte in your DCOS cluster. In order to do so you can use the Quobyte cli tools from within DCOS or access the Quobyte Webconsole service. This can be done right away by using a SSH tunnel with forwarding. In order to do so find the address of the proxy node. It can e.g. be seen when using dcos to log into the master node:
 
 ```
-ssh -A -L <local_port>:<internal_node>:<webconsole_port> core@<master_node>
+[kaisers@kaisers ~>dcos node ssh --master-proxy --master
+Running `ssh -A -t core@52.27.103.24 ssh -A -t core@10.0.6.39`
+<find the address here: ^^^^^^^^^^^^>
+```
+
+Using this ``proxy address `` you can now ssh into your cluster:
+
+```
+ssh -A -L <local_port>:<internal_node>:<webconsole_port> core@<proxy_address>
 ```
 
 With this tunnel in place you can access the Quobyte Webconsole service at ``http://localhost:<localport>/``.
