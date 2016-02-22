@@ -187,7 +187,9 @@ static std::string constructDockerExecuteCommand(
     rcs << " && export QUOBYTE_WEBCONSOLE_PORT=" + std::to_string(FLAGS_webconsole_port);
   }
 
-  rcs << " && export HOST_IP=$(dig +short " + host_name + ")";
+  // If Mesos slaves are not configured correctly, host_name might contain an IP.
+  rcs << " && export DIG_LOOKUP=$(dig +short " + host_name + ")";
+  rcs << " && export HOST_IP=${DIG_LOOKUP:-" + host_name + "}";
   if (!FLAGS_extra_service_config.empty()) {
     rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
         << FLAGS_extra_service_config;
