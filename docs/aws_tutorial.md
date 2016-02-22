@@ -182,6 +182,21 @@ Please note that this commands currently returns an error code 502 despite the f
 Following this command the Quobyte framework starts running the different Quobyte services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
 
 ### Use and manage your Quobyte cluster
+Now you can user Quobyte in your DCOS cluster. In order to do so you can use the Quobyte cli tools from within DCOS or access the Quobyte Webconsole service. This can be done right away by using a SSH tunnel with forwarding:
+
+```
+ssh -A -L <local_port>:<internal_node>:<webconsole_port> core@<master_node>
+```
+
+With this tunnel in place you can access the Quobyte Webconsole service at ``http://localhost:<localport>/``.
+
+Access to the Quobyte API service can be achieved by similar means.
+
+<!--
+
+# The following config currently does not work in DCOS but should in the future. Recheck when public UI access has been updated in DCOS.
+
+#### Publicly accessing the Quobyte Webconsole service
 
 In order to access the Quobyte Webconsole service from outside the cluster you can deploy a service instance via marathon onto a public slave. Use the following JSON config, set the required Quobyte version in the ``image`` tag and run this via marathon. Make sure the ``quobyte-server`` is available to the docker daemons.
 
@@ -238,3 +253,4 @@ The same holds true if you want to access the Quobyte API from outside the clust
 }
 
 ```
+-->
