@@ -26,6 +26,7 @@ message ProbeRequest {}
 
 message ProbeResponse {
   repeated DeviceType device_type = 1;
+  optional bool client_mount_point = 2;
 }
 
 // Internal data structures follow
@@ -51,8 +52,10 @@ message NodeState {
   required ServiceState registry = 4;
   required ServiceState metadata = 5;
   required ServiceState data = 6;
+  required ServiceState client = 10;
 
   repeated DeviceType device_type = 7;
+  optional bool client_mount_point = 11;
   optional bool device_types_valid = 9;
 
   optional int64 last_probe_s = 8;

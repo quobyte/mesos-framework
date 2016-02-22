@@ -102,9 +102,15 @@ void QuobyteExecutor::frameworkMessage(
   for (auto type : found_types) {
     response.add_device_type(type);
   }
-
   std::cout << "Found device types: "
       << response.ShortDebugString() << std::endl;
+
+  struct stat status;
+  if (stat("/quobyte", &status) == 0 && S_ISDIR(status.st_mode)) {
+    std::cout << "Found path for client mount point /quobyte";
+    response.set_client_mount_point(true);
+  }
+
   std::string result;
   if (!response.SerializeToString(&result)) {
     std::cout << "Could not serialize " << response.DebugString() << std::endl;
