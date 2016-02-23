@@ -86,7 +86,7 @@ Run on the command line
 -----------------------
 
 ```
-sudo docker run quobyte/quobyte-mesos:0.25.0 /opt/quobyte-mesos-cmd.sh --zk=zk.corp:2181 --master=zk://zk.corp:2181/mesos ...
+sudo docker run quobyte/quobyte-mesos:latest /opt/quobyte-mesos-cmd.sh --zk=zk.corp:2181 --master=zk://zk.corp:2181/mesos ...
 ```
 
 Running the Framework on Marathon
@@ -105,7 +105,7 @@ Running the Framework on Marathon
     "type": "DOCKER",
     "docker": {
       "forcePullImage": true,
-      "image": "quobyte/quobyte-mesos:0.25.0",
+      "image": "quobyte/quobyte-mesos:latest",
       "network": "HOST"
     }
   }
