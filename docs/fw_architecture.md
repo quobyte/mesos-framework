@@ -1,6 +1,6 @@
 # Quobyte Mesos Framework Architecture
 
-- obj is to clarify how the fw set's up the Quobyte infrastructure in the cluster
+This document provides a quick overview on which elements comprise the Quobyte system run by this Quobyte Mesos framework.
 
 ## Building Blocks
 
