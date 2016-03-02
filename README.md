@@ -20,7 +20,7 @@ Two additional services provide access to the system's management interface:
 * API Service: JSONRPC API service for third-party software
 * Webconsole: user interface for monitoring and managing the Quobyte system
 
-The framework is also prepared to start a Quobyte client in a container that mounts the Quobyte volume namespace in /quobyte on the host. From there individual volumes and directories can be mapped into containers.
+The framework is also prepared to start a Quobyte client in a container that mounts the Quobyte volume namespace in /quobyte on the host. From there individual volumes and directories can be mapped into containers. Please refer to the [architecture overview document](https://github.com/quobyte/mesos-framework/blob/master/docs/fw_architecture.md) for a general setup description.
 
 Dependencies:
 =============
