@@ -196,7 +196,7 @@ static std::string constructDockerExecuteCommand(
     rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
         << FLAGS_extra_service_config;
   }
-  if (FLAGS_service_debug_port == -1) {
+  if (FLAGS_service_debug_port != -1) {
     rcs << " && export QUOBYTE_DEBUG_PORT="
         << FLAGS_service_debug_port;
   }
