@@ -59,6 +59,8 @@ DEFINE_string(webconsole_resources, "cpus:0.5;mem:512;disk:32",
               "Resources for webconsole");
 DEFINE_string(extra_service_config, "",
               "Extra config for all service.cfg files");
+DEFINE_int32(service_debug_port, -1,
+             "Debug port for services");
 DEFINE_string(host_device_directory,"/mnt",
               "Host directory where Quobyte devices are mounted");
 DEFINE_string(prober_user, "root",
@@ -193,6 +195,10 @@ static std::string constructDockerExecuteCommand(
   if (!FLAGS_extra_service_config.empty()) {
     rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
         << FLAGS_extra_service_config;
+  }
+  if (FLAGS_service_debug_port == -1) {
+    rcs << " && export QUOBYTE_DEBUG_PORT="
+        << FLAGS_service_debug_port;
   }
   rcs << " && /opt/main.sh";
 
