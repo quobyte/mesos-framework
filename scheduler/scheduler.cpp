@@ -61,6 +61,8 @@ DEFINE_string(extra_service_config, "",
               "Extra config for all service.cfg files");
 DEFINE_int32(service_debug_port, -1,
              "Debug port for services");
+DEFINE_bool(enable_assertions, false,
+            "Enable assertions");
 DEFINE_string(host_device_directory,"/mnt",
               "Host directory where Quobyte devices are mounted");
 DEFINE_string(prober_user, "root",
@@ -75,6 +77,8 @@ DEFINE_string(client_image, "",
               "Docker image name of the Quobyte client");
 DEFINE_string(public_slave_role, "",
               "Role name for slaves that receive Console and API");
+DEFINE_bool(autodetect_service_ip, true,
+            "Auto-detect service IP");
 
 static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
@@ -191,7 +195,10 @@ static std::string constructDockerExecuteCommand(
 
   // If Mesos slaves are not configured correctly, host_name might contain an IP.
   rcs << " && export DIG_LOOKUP=$(dig +short " + host_name + ")";
-  rcs << " && export HOST_IP=${DIG_LOOKUP:-" + host_name + "}";
+
+  if (!FLAGS_autodetect_service_ip) {
+    rcs << " && export HOST_IP=${DIG_LOOKUP:-" + host_name + "}";
+  }
   if (!FLAGS_extra_service_config.empty()) {
     rcs << " && export QUOBYTE_EXTRA_SERVICE_CONFIG="
         << FLAGS_extra_service_config;
@@ -199,6 +206,9 @@ static std::string constructDockerExecuteCommand(
   if (FLAGS_service_debug_port != -1) {
     rcs << " && export QUOBYTE_DEBUG_PORT="
         << FLAGS_service_debug_port;
+  }
+  if (FLAGS_enable_assertions) {
+    rcs << " && export QUOBYTE_ENABLE_ASSERTIONS=true";
   }
   rcs << " && /opt/main.sh";
 
