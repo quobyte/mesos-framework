@@ -47,8 +47,8 @@ dcos node ssh --master-proxy --master
 ```
 mkdir ./tmp
 cd ./tmp
-wget https://github.com/quobyte/quobyte-deploy/archive/master.zip
-unzip ./master.zip
+wget https://codeload.github.com/quobyte/quobyte-deploy/zip/master
+unzip ./quobyte-deploy-master.zip
 wget https://support.quobyte.com/repo/2/YOUR_REPO_ID/quobyte-docker/quobyte-server-image_VERSION.tar.bzip2
 ```
 
@@ -109,6 +109,13 @@ docker load -i quobyte-server-image_VERSION.tar.bzip2
 ```
 
 Please note that the mount --bind construction is used for testing purposes here. This will not be used with real devices or AWS EBS volumes that are used as Quobyte devices.
+
+You can verify the loaded docker images by listing locally available images, there should be at least two entries available from the loaded docker image archive. Both have the same IMAGE ID but different tags (a release tag and a hash key tag). List the images buy running:
+
+```
+docker images
+```
+
 
 #### Bootstrap a single device in the cluster
 
