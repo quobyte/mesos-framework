@@ -181,8 +181,8 @@ Please note that this command currently returns an error code 502, although the 
 
 Following this command the Quobyte framework starts running the different Quobyte services on the involved AWS nodes. These are shown in the Mesos UI at ``http://MASTER_NODE_NAME/mesos/`` .
 
-### Use and manage your Quobyte cluster
-Now you can user Quobyte in your DCOS cluster. In order to do so you can use the Quobyte cli tools from within DCOS or access the Quobyte Webconsole service. This can be done right away by using a SSH tunnel with forwarding. In order to do so find the address of the proxy node. It can e.g. be seen when using dcos to log into the master node:
+### Manage your Quobyte cluster
+Now you can use Quobyte in your DCOS cluster. In order to do so you can use the Quobyte cli tools from within DCOS or access the Quobyte Webconsole service. This can be done right away by using a SSH tunnel with forwarding. In order to do so find the address of the proxy node. It can e.g. be seen when using dcos to log into the master node:
 
 ```
 [kaisers@kaisers ~>dcos node ssh --master-proxy --master
@@ -199,6 +199,15 @@ ssh -A -L <local_port>:<internal_node>:<webconsole_port> core@<proxy_address>
 With this tunnel in place you can access the Quobyte Webconsole service at ``http://localhost:<localport>/``.
 
 Access to the Quobyte API service can be achieved by similar means.
+
+### Activate Registry Replication for Quobyte 1.2
+
+For Quobyte version 1.2.x the registry replication has to be activated explicitely (no longer required with 1.3+ versions).
+This is done via the webconsole, access to which you prepared in the previous step.
+Navigate to *Automation* - *Misc* - *registry/replica_set_needs_update* in the webconsole.
+Ensure the rule is enabled and check the *Manage registry replicas* checkbox.
+
+This ensures your different Quobyte registries replicate each others data.
 
 <!--
 
