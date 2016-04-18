@@ -1,6 +1,6 @@
 # Quobyte Mesos Framework Architecture
 
-This document provides a quick overview on which elements comprise the Quobyte system run by this Quobyte Mesos framework.
+This document provides a quick overview on which elements comprise the Quobyte system run by the Quobyte Mesos framework.
 
 ## Building Blocks
 
@@ -67,8 +67,8 @@ Setting up a Quobyte system in your Mesos cluster follows the following steps:
 Marking devices for specific Quobyte services is an important design decision. Thus consult the Quobyte user manual on how many Registries, Metadata and Data services you will set up in your cluster and where to place them. Review the section on capacity planning for this. When this has been planned the according devices are marked using the [Quobyte deployment tools](https://github.com/quobyte/quobyte-deploy). 
 
 ### 2) Fetch Quobyte Docker Images
-While the frameworks Docker image is available via Docker Hub and can be retrieved at runtime the images for the Quobyte services and client have to be downloaded from [support.quobyte.com](https://support.quobyte.com/). Please contact [info@quobyte.com](mailto:info@quobyte.com) for access to our repository.
-After you have downloaded the Docker images these can either be distributed onto the nodes of your cluster or loaded into a private Docker registry.
+While the frameworks Docker image is available via Docker Hub, the images for the Quobyte services and client can be downloaded from [support.quobyte.com](https://support.quobyte.com/). Please contact [info@quobyte.com](mailto:info@quobyte.com) for access to our repository.
+If you have downloaded the Docker images from our support site these can either be distributed onto the nodes of your cluster or loaded into a private Docker registry.
 
 ### 3) Start Quobyte Mesos Framework
 The quobyte-mesos framework is typically run via Marathon. Upon startup the framework starts creating prober tasks that run on the available Mesos nodes and locate devices previously marked for Quobyte. These findings are accumulated by the framework. New devices can be added and marked in the cluster at runtime and will be integrated into the Quobyte system upon detection by a prober and subsequent service startup initiated by the framework.

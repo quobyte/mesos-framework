@@ -5,19 +5,11 @@ How to install the Quobyte framework for Apache Mesos / Mesosphere DCOS on Amazo
 ## Requirements
 
 For this tutorial you will need the following:
+
 * An Amazon AWS account 
 * Knowledge how to access and download files from http://github.com
 * An email address to register with Mesosphere for DCOS testing
 * Basic knowledge on how to use a shell environment with sudo commands
-
-## Fetch Quobyte docker images
-
-* contact [info@quobyte.com](mailto:info@quobyte.com) to get access to the Quobyte support repositories
-* With the credentials received from that contact log into http://support.quobyte.com and navigate to
-    * Release
-        * Package Repositories
-            * quobyte-docker
-* Note/copy the URL of the latest version quobyte-docker-image file, e.g. ``quobyte-server-image_1.2.5.tar.bzip2``. Keep this at hand for later use during installation
 * Note: this tutorial requires **Quobyte version 1.2.5 or later**
 
 ## Setting up AWS instances
