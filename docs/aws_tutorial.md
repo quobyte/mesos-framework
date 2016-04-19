@@ -10,7 +10,7 @@ For this tutorial you will need the following:
 * Knowledge how to access and download files from http://github.com
 * An email address to register with Mesosphere for DCOS testing
 * Basic knowledge on how to use a shell environment with sudo commands
-* Note: this tutorial requires **Quobyte version 1.2.5 or later**
+* Note: this tutorial requires **Quobyte version 1.2.10 or later**
 
 ## Setting up AWS instances
 
