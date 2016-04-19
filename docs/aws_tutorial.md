@@ -33,23 +33,20 @@ dcos node ssh --master-proxy --master
 
 * Download the Quobyte deployment tools at https://github.com/quobyte/quobyte-deploy . These tools need to be run on the intended Quobyte nodes but we use the master for central download and distribution to the other DCOS slave nodes.
 * Unpack the archive file to a local tmp directory
-* Download the ``quobyte-server-image_VERSION.tar.bzip2`` file from your Quobyte repository to the master node
 
-(You can use the following example via copy paste if you replace ``YOUR_REPO_ID`` with the ID from your repo url and ``VERSION`` in the file name with the latest version available in your repo.)
 ```
 mkdir ./tmp
 cd ./tmp
-wget https://codeload.github.com/quobyte/quobyte-deploy/zip/master
+curl https://codeload.github.com/quobyte/quobyte-deploy/zip/master > quobyte-deploy-master.zip
 unzip ./quobyte-deploy-master.zip
-wget https://support.quobyte.com/repo/2/YOUR_REPO_ID/quobyte-docker/quobyte-server-image_VERSION.tar.bzip2
 ```
 
-* Now the required tools (~/tmp/quobyte-deploy-master/tools/) and image (~/tmp/quobyte-server-image_VERSION.tar.bzip2) are available on the master node and the different slave nodes can be prepared.
+* Now the required tools (~/tmp/quobyte-deploy-master/tools/) are available on the master node and the different slave nodes can be prepared.
 
 
 #### Distribute the deployment tools and docker image to three DCOS slave nodes that will later make up our Quobyte example installation
 
-The tools and image on the master can now be distributed to the nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
+The tools on the master can now be distributed to the nodes by secure copy. In order to get a list of available nodes used the DCOS cli:
 
 ```
 dcos node 
@@ -59,7 +56,6 @@ Now copy the image to all these nodes. Use the scp command and the IPs derived f
 
 ```
 scp -r ~/tmp/quobyte-deploy-master/tools core@10.0.0.185:/home/core/
-scp ~/tmp/quobyte-server-image_1.2.3.tar.bzip2 core@10.0.0.185:/home/core/
 
 ```
 
@@ -97,16 +93,9 @@ sudo mount --bind /home/quobyte_data /mnt/quobyte_data
 sudo chmod 777 /mnt/quobyte_registry
 sudo chmod 777 /mnt/quobyte_metadata
 sudo chmod 777 /mnt/quobyte_data
-docker load -i quobyte-server-image_VERSION.tar.bzip2
 ```
 
 Please note that the mount --bind construction is used for testing purposes here. This will not be used with real devices or AWS EBS volumes that are used as Quobyte devices.
-
-You can verify the loaded docker images by listing locally available images, there should be at least two entries available from the loaded docker image archive. Both have the same IMAGE ID but different tags (a release tag and a hash key tag). List the images buy running:
-
-```
-docker images
-```
 
 
 #### Bootstrap a single device in the cluster
