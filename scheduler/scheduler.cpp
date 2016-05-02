@@ -162,6 +162,17 @@ static mesos::ContainerInfo::DockerInfo createQbDockerInfo(
   return dockerInfo;
 }
 
+static std::string memFromResourceString(const std::string& resource_string) {
+  size_t mem_idx = resource_string.find("mem");
+  std::string mem_start_str = resource_string.substr(mem_idx, resource_string.length());
+  size_t mem_end_idx = mem_start_str.find(";");
+  std::string mem_str = mem_start_str.substr(0, mem_end_idx);
+  size_t mem_val_idx = mem_str.find(":") + 1;  // cut off : itself
+  std::string mem_val_str = mem_str.substr(mem_val_idx, mem_str.length());
+  return mem_val_str + "m";
+}
+
+
 static std::string constructDockerExecuteCommand(
     const std::string& service_name,
     const std::string& host_name,
@@ -191,6 +202,23 @@ static std::string constructDockerExecuteCommand(
   }
   if (service_name == "webconsole") {
     rcs << " && export QUOBYTE_WEBCONSOLE_PORT=" + std::to_string(FLAGS_webconsole_port);
+  }
+
+  // export Quobyte max memory settings
+  if (service_name == "registry") {
+    rcs << " && export QUOBYTE_MAX_MEM_REGISTRY=" + memFromResourceString(FLAGS_registry_resources);
+  }
+  if (service_name == "metadata") {
+    rcs << " && export QUOBYTE_MAX_MEM_METADATA=" + memFromResourceString(FLAGS_metadata_resources);
+  }
+  if (service_name == "data") {
+    rcs << " && export QUOBYTE_MAX_MEM_DATA=" + memFromResourceString(FLAGS_data_resources);
+  }
+  if (service_name == "api") {
+    rcs << " && export QUOBYTE_MAX_MEM_API=" + memFromResourceString(FLAGS_api_resources);
+  }
+  if (service_name == "webconsole") {
+    rcs << " && export QUOBYTE_MAX_MEM_WEBCONSOLE=" + memFromResourceString(FLAGS_webconsole_resources);
   }
 
   // If Mesos slaves are not configured correctly, host_name might contain an IP.
