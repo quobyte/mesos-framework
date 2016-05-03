@@ -19,10 +19,14 @@ enum DeviceType {
   REGISTRY = 2;
   METADATA = 3;
   DATA = 4;
+  CLIENT = 5;
 }
 
 // This is the message format between scheduler and executor
-message ProbeRequest {}
+message ProbeRequest {
+  // Check this absolute path if it exists and a client should be scheduled
+  optional string client_directory = 1;
+}
 
 message ProbeResponse {
   repeated DeviceType device_type = 1;

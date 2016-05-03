@@ -79,6 +79,8 @@ DEFINE_string(public_slave_role, "",
               "Role name for slaves that receive Console and API");
 DEFINE_bool(autodetect_service_ip, true,
             "Auto-detect service IP");
+DEFINE_string(client_mount_point, "",
+              "If this directory exists on the host, schedule a client");
 
 static const char* kExecutorId = "quobyte-mesos-prober-";
 static const char* kArchiveUrl = "/executor.tar.gz";
@@ -550,9 +552,11 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       mesos::ExecutorID executor_id;
       executor_id.set_value(
           kExecutorId + state_->framework_id());
+      quobyte::ProbeRequest request;
+      request.set_client_directory(FLAGS_client_mount_point);
       driver->sendFrameworkMessage(
           executor_id, offer.slave_id(),
-          quobyte::ProbeRequest().SerializeAsString());
+          request.SerializeAsString());
       // Also reconcile tasks
       reconcileHost(driver, offer);
       driver->declineOffer(offer.id());

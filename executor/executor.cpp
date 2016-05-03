@@ -99,6 +99,16 @@ void QuobyteExecutor::frameworkMessage(
   }
 
   quobyte::ProbeResponse response;
+
+  quobyte::ProbeRequest request;
+  request.ParseFromString(data);
+  if (!request.client_directory().empty()) {
+    struct stat status;
+    if (stat(request.client_directory().c_str(), &status) == 0) {
+      response.add_device_type(quobyte::CLIENT);
+    }
+  }
+
   for (auto type : found_types) {
     response.add_device_type(type);
   }
