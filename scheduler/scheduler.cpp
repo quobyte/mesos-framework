@@ -1004,7 +1004,7 @@ std::string QuobyteScheduler::handleHTTP(
     const std::string& method,
     const std::string& path,
     const std::string& data) {
-  LOG(INFO) << method << " request to " << path << " with " << data;
+  LOG(INFO) << method << " request to " << path << " with body '" << data <<"'";
   if (method == "GET" && path == kArchiveUrl) {
     int fd = open("executor/executor.tar.gz", O_RDONLY);
     if (fd == -1) {
@@ -1019,8 +1019,12 @@ std::string QuobyteScheduler::handleHTTP(
     close(fd);
     return std::string(buffer.get(), bytes);
   } else if (path.find(kVersionAPIUrl) == 0) {
-    LOG(INFO) << "Rolling out version " << data;
     state_->set_target_version(data);
+    if (data.empty()) {
+      LOG(INFO) << "Will shutdown tasks";
+    } else {
+      LOG(INFO) << "Rolling out version " << data;
+    }
     return state_->state().target_version();
   } else if (path.find(kHealthUrl) == 0) {
     LOG(INFO) << "Rolling out version " << data;
