@@ -1019,15 +1019,17 @@ std::string QuobyteScheduler::handleHTTP(
     close(fd);
     return std::string(buffer.get(), bytes);
   } else if (path.find(kVersionAPIUrl) == 0) {
-    state_->set_target_version(data);
-    if (data.empty()) {
-      LOG(INFO) << "Will shutdown tasks";
-    } else {
-      LOG(INFO) << "Rolling out version " << data;
+    if (method == "POST") {
+      state_->set_target_version(data);
+      if (data.empty()) {
+        LOG(INFO) << "Will shutdown tasks";
+      } else {
+        LOG(INFO) << "Rolling out version " << data;
+      }
     }
     return state_->state().target_version();
   } else if (path.find(kHealthUrl) == 0) {
-    LOG(INFO) << "Rolling out version " << data;
+    LOG(INFO) << "Health check";
     return "OK";
   } else {
     std::string result;

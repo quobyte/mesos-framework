@@ -56,28 +56,31 @@ int HttpServer::HandleRequest(void *cls,
                               size_t* upload_data_size,
                               void** ptr) {
   Dispatcher& dispatch = *static_cast<Dispatcher*>(cls);
-  static int dummy;
-  struct MHD_Response * response;
-  int ret;
+  std::string* post_data = static_cast<std::string*>(*ptr);
 
-  if (&dummy != *ptr) {
-    /* The first time only the headers are valid,
-       do not respond in the first round... */
-    *ptr = &dummy;
-    return MHD_YES;
+  if (std::string(method) == "POST") {
+    if (post_data == NULL) {
+      /* The first time only the headers are valid,
+         do not respond in the first round... */
+      *ptr = new std::string();
+      return MHD_YES;
+    }
+    if (*upload_data_size > 0) {
+      post_data->append(std::string(upload_data, *upload_data_size));
+      *upload_data_size = 0;  // acknowledge
+      return MHD_YES;
+    }
   }
-  *ptr = NULL; /* clear context pointer */
 
-  std::string post_body;
-  if (*upload_data_size > 0) {
-    post_body = std::string(upload_data, *upload_data_size);
-  }
-  std::string page = dispatch(method, url, post_body);
-  response = MHD_create_response_from_data(page.length(),
-                                           (void*) page.c_str(),
-                                           MHD_NO,
-                                           MHD_YES);
-  ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+  // *upload_data_size == 0
+
+  std::string page = dispatch(method, url, post_data != NULL ? *post_data : "");
+  struct MHD_Response* response = MHD_create_response_from_data(
+      page.length(),
+      (void*) page.c_str(),
+      MHD_NO,
+      MHD_YES);
+  int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
   MHD_destroy_response(response);
   return ret;
 }
