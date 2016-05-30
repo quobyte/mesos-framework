@@ -61,6 +61,10 @@ DEFINE_string(extra_service_config, "",
               "Extra config for all service.cfg files");
 DEFINE_int32(service_debug_port, -1,
              "Debug port for services");
+DEFINE_int32(registry_extra_ram_mb, 512,
+             "Extra ram for registry");
+DEFINE_int32(metadata_extra_ram_mb, 1024,
+             "Extra ram for metadata");
 DEFINE_bool(enable_assertions, false,
             "Enable assertions");
 DEFINE_string(host_device_directory,"/mnt",
@@ -164,14 +168,26 @@ static mesos::ContainerInfo::DockerInfo createQbDockerInfo(
   return dockerInfo;
 }
 
-static std::string memFromResourceString(const std::string& resource_string) {
+static int32_t memMbFromResourceString(const std::string& resource_string) {
   size_t mem_idx = resource_string.find("mem");
+  if (mem_idx == -1) {
+    return -1;
+  }
+
   std::string mem_start_str = resource_string.substr(mem_idx, resource_string.length());
   size_t mem_end_idx = mem_start_str.find(";");
+  if (mem_end_idx == -1) {
+    mem_end_idx = mem_start_str.length() - 1;
+  }
+
   std::string mem_str = mem_start_str.substr(0, mem_end_idx);
   size_t mem_val_idx = mem_str.find(":") + 1;  // cut off : itself
   std::string mem_val_str = mem_str.substr(mem_val_idx, mem_str.length());
-  return mem_val_str + "m";
+  try {
+    return std::stoi(mem_val_str);
+  } catch (const std::invalid_argument& e) {
+    return -1;
+  }
 }
 
 
@@ -208,19 +224,29 @@ static std::string constructDockerExecuteCommand(
 
   // export Quobyte max memory settings
   if (service_name == "registry") {
-    rcs << " && export QUOBYTE_MAX_MEM_REGISTRY=" + memFromResourceString(FLAGS_registry_resources);
+    rcs << " && export QUOBYTE_MAX_MEM_REGISTRY="
+        << (memMbFromResourceString(FLAGS_registry_resources) - FLAGS_registry_extra_ram_mb)
+        << "m";
   }
   if (service_name == "metadata") {
-    rcs << " && export QUOBYTE_MAX_MEM_METADATA=" + memFromResourceString(FLAGS_metadata_resources);
+    rcs << " && export QUOBYTE_MAX_MEM_METADATA="
+        << (memMbFromResourceString(FLAGS_metadata_resources) - FLAGS_metadata_extra_ram_mb)
+        << "m";
   }
   if (service_name == "data") {
-    rcs << " && export QUOBYTE_MAX_MEM_DATA=" + memFromResourceString(FLAGS_data_resources);
+    rcs << " && export QUOBYTE_MAX_MEM_DATA="
+        << memMbFromResourceString(FLAGS_data_resources)
+        << "m";
   }
   if (service_name == "api") {
-    rcs << " && export QUOBYTE_MAX_MEM_API=" + memFromResourceString(FLAGS_api_resources);
+    rcs << " && export QUOBYTE_MAX_MEM_API="
+        << memMbFromResourceString(FLAGS_api_resources)
+        << "m";
   }
   if (service_name == "webconsole") {
-    rcs << " && export QUOBYTE_MAX_MEM_WEBCONSOLE=" + memFromResourceString(FLAGS_webconsole_resources);
+    rcs << " && export QUOBYTE_MAX_MEM_WEBCONSOLE="
+        << memMbFromResourceString(FLAGS_webconsole_resources)
+        << "m";
   }
 
   // If Mesos slaves are not configured correctly, host_name might contain an IP.
