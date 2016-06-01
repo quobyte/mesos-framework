@@ -530,6 +530,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
 
     mesos::Resources remaining_resources = offer.resources();
     quobyte::NodeState& node_state = node->second;
+    node_state.set_last_offer_s(now());
+
     if (now() - node_state.prober().last_seen_s() >
             FLAGS_probe_executor_keepalive_interval_s &&
         node_state.prober().state() != quobyte::ServiceState::RUNNING &&
@@ -1023,7 +1025,9 @@ static std::string renderService(
   return std::string("<tr><td>") + name + ": </td><td>"
       + (has_device ? "found" : device_msg)
       + " <span title=\"" +  service.last_message() + "\" " + extra + ">\n"
-      + ServiceState_TaskState_Name(service.state()) + "</span></td></tr>\n";
+      + ServiceState_TaskState_Name(service.state()) + "</span>"
+      + "<div class=\"details\"><pre>" + service.DebugString() + "</pre></div>"
+      + "</td></tr>\n";
 }
 
 std::string QuobyteScheduler::handleHTTP(
@@ -1084,7 +1088,9 @@ std::string QuobyteScheduler::handleHTTP(
           node.second.device_type().end());
 
       result += "<div class='hostbox' style=\"display: inline-block; border: 1px solid lightgray; padding: 3px; margin: 3px\"><h3>" +
-          node.first + "</h3>";
+          node.first +
+          "<div class=\"details\"><pre>" + node.second.DebugString() + "</pre></div>" +
+          "</h3>";
 
       std::string device_msg = "no device";
       if (!node.second.device_types_valid()) {

@@ -63,4 +63,5 @@ message NodeState {
   optional bool device_types_valid = 9;
 
   optional int64 last_probe_s = 8;
+  optional int64 last_offer_s = 12;
 }
