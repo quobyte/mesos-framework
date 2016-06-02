@@ -1026,7 +1026,6 @@ static std::string renderService(
       + (has_device ? "found" : device_msg)
       + " <span title=\"" +  service.last_message() + "\" " + extra + ">\n"
       + ServiceState_TaskState_Name(service.state()) + "</span>"
-      + "<div class=\"details\"><pre>" + service.DebugString() + "</pre></div>"
       + "</td></tr>\n";
 }
 
