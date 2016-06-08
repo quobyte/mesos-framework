@@ -15,7 +15,7 @@
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
 
-// Bridge networking does not work reliabley as UDP communication does
+// Bridge networking does not work reliably as UDP communication does
 // not go through well.
 // #define BRIDGE_NETWORKING
 
@@ -1029,6 +1029,30 @@ static std::string renderService(
       + "</td></tr>\n";
 }
 
+int QuobyteScheduler::countRunningServices() {
+  int result = 0;
+  if (api_state_.state() == quobyte::ServiceState::RUNNING) {
+    result++;
+  }
+  if (console_state_.state() == quobyte::ServiceState::RUNNING) {
+    result++;
+  }
+
+  for (const auto& node : nodes_) {
+    if (node.second.registry().state() == quobyte::ServiceState::RUNNING) {
+      result++;
+    }
+    if (node.second.metadata().state() == quobyte::ServiceState::RUNNING) {
+      result++;
+    }
+    if (node.second.data().state() == quobyte::ServiceState::RUNNING) {
+      result++;
+    }
+  }
+
+  return result;
+}
+
 std::string QuobyteScheduler::handleHTTP(
     const std::string& method,
     const std::string& path,
@@ -1057,12 +1081,13 @@ std::string QuobyteScheduler::handleHTTP(
       }
     }
     return state_->state().target_version();
-  } else if (path.find(kHealthUrl) == 0) {
+  } else if (method == "GET" && path == kHealthUrl) {
+    int running = countRunningServices();
     LOG(INFO) << "Health check";
-    return "OK";
-  } else {
+    return "OK. Running services: " + std::to_string(running);
+  } else if (method == "GET" && path == "/") {
     std::string result;
-    result = "<html><head><link rel=\"stylesheet\" href=\"http://elisa.corp.quobyte.com/quobytex.css\">";
+    result = "<html><head>";
     result += "<style>.details { display: none; } .hostbox:hover .details { display:block; position:absolute; background:#fafafa; border: 2px solid lightgray; }</style>";
     result += "</head><body style='font-family: sans-serif'>";
     result += "<h1><img style='vertical-align:middle; padding:3px' src=\"http://www.quobyte.com/favicon-128.png\" width=\"60\">Quobyte Mesos Framework Scheduler</h1>\n";
@@ -1105,5 +1130,7 @@ std::string QuobyteScheduler::handleHTTP(
 
     result += "</body></html>";
     return result;
+  } else {
+    return "";
   }
 }

@@ -72,17 +72,30 @@ int HttpServer::HandleRequest(void *cls,
     }
   }
 
-  // *upload_data_size == 0
+  // Invariant: *upload_data_size == 0
 
   std::string page = dispatch(method, url, post_data != NULL ? *post_data : "");
-  struct MHD_Response* response = MHD_create_response_from_data(
-      page.length(),
-      (void*) page.c_str(),
-      MHD_NO,
-      MHD_YES);
-  int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
-  MHD_destroy_response(response);
-  return ret;
+
+  if (!page.empty()) {
+    struct MHD_Response* response = MHD_create_response_from_data(
+        page.length(),
+        (void*) page.c_str(),
+        MHD_NO,
+        MHD_YES);
+    int ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+    MHD_destroy_response(response);
+    return ret;
+  } else {
+    std::string response_404 = std::string("Not found: ") + url;
+    struct MHD_Response* response = MHD_create_response_from_data(
+        response_404.size(),
+        (void*) response_404.c_str(),
+        MHD_NO,
+        MHD_YES);
+    int ret = MHD_queue_response(connection, MHD_HTTP_NOT_FOUND, response);
+    MHD_destroy_response(response);
+    return ret;
+  }
 }
 }  // namespace quobyte
 

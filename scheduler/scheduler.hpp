@@ -102,6 +102,8 @@ public:
   void createHost(const std::string& hostname,
       const std::string& slave_id);
 
+  int countRunningServices();
+
   SchedulerStateProxy* state_;
   mesos::FrameworkInfo* framework_;
 
