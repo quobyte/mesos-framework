@@ -157,6 +157,8 @@ Desirable improvements:
 * Rolling updates on version changes does not work yet, as Mesos does not export labels back to framework. (See [MESOS-4135](https://issues.apache.org/jira/browse/MESOS-4135))
 * Use dynamic port assignments, when Mesos knows how to co-allocate tcp and dns ports. (See [MESOS-4485](https://issues.apache.org/jira/browse/MESOS-4485)).
 * Automatic /quobyte client mounts. This is implemented, but needs support from Mesos (See [MESOS-4717](https://issues.apache.org/jira/browse/MESOS-4717)).
+* Automatic detection of new devices. Currently new devices made available on an already probed host are not updated in a probers container.
+  - Workaround: When adding new devices manually shut down the given hosts prober. The framework will schedule a new prober for that host who will pick up old as well as the new devices.
 
 References:
 ==========
