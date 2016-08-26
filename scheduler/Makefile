@@ -4,9 +4,13 @@ BINARY = quobyte-mesos
 MESOS_SRC = ../thirdparty/mesos
 INCLUDE_DIRS = -I../common -I$(MESOS_SRC)/src -I$(MESOS_SRC)/build/include \
     -I$(MESOS_SRC)/include -I$(MESOS_SRC)/build/src \
-    -I$(MESOS_SRC)/build/3rdparty/zookeeper-3.4.5/src/c/include/ -I$(MESOS_SRC)/build/3rdparty/zookeeper-3.4.5/src/c/generated/ \
+    -I$(MESOS_SRC)/3rdparty/zookeeper-3.4.5/src/c/include/ \
+    -I$(MESOS_SRC)/3rdparty/zookeeper-3.4.5/src/c/generated/ \
     -I$(MESOS_SRC)/build/3rdparty/libprocess/3rdparty/glog-0.3.3/src/ \
-    -I$(MESOS_SRC)/build/3rdparty/libprocess/3rdparty/picojson-4f93734/
+    -I$(MESOS_SRC)/3rdparty/libprocess/3rdparty/stout/include/ \
+    -I$(MESOS_SRC)/3rdparty/libprocess/include \
+    -I$(MESOS_SRC)/3rdparty/libprocess/3rdparty/picojson-1.3.0/
+
 
 CXX = g++
 CXXFLAGS = -g -pthread -std=c++11

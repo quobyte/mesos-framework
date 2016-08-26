@@ -15,7 +15,7 @@ default: $(BINARY)
 	$(CXXCOMPILE)
 	
 quobyte.pb.cc: quobyte.proto
-	protoc quobyte.proto --cpp_out=.
+	/usr/bin/protoc quobyte.proto --cpp_out=.
 
 $(BINARY): $(OBJS)
 	ar rcs $@ $^
