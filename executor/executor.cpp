@@ -54,6 +54,25 @@ void QuobyteExecutor::frameworkMessage(
     mesos::ExecutorDriver* driver,
     const std::string& data) {
   std::cout << "Received probe devices request" << std::endl;
+
+  quobyte::ProbeRequest request;
+  request.ParseFromString(data);
+
+  if (!request.initialize_path().empty()) {
+    const std::string setup_file_name =
+        request.initialize_path() + "/QUOBYTE_DEV_SETUP";
+    struct stat status;
+    if (stat(setup_file_name.c_str(), &status) == 0) {
+      std::cout << request.initialize_path() << " is already a Quobyte device";
+      return;
+    }
+    std::ofstream setupfile(setup_file_name);
+    setupfile << "# Quobyte device identifier file (written by Mesos framework)\n";
+    setupfile << "device.serial=" << random();
+    setupfile << "device.model=Unknown";
+    setupfile << "device.type=DATA_DEVICE";
+  }
+
   std::set<quobyte::DeviceType> found_types;
   std::ifstream infile("/proc/mounts");
   std::string line;
@@ -100,8 +119,6 @@ void QuobyteExecutor::frameworkMessage(
 
   quobyte::ProbeResponse response;
 
-  quobyte::ProbeRequest request;
-  request.ParseFromString(data);
   if (!request.client_directory().empty()) {
     struct stat status;
     if (stat(request.client_directory().c_str(), &status) == 0) {

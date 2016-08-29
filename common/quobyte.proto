@@ -26,6 +26,7 @@ enum DeviceType {
 message ProbeRequest {
   // Check this absolute path if it exists and a client should be scheduled
   optional string client_directory = 1;
+  optional string initialize_path = 2;
 }
 
 message ProbeResponse {

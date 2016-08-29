@@ -528,6 +528,22 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       continue;
     }
 
+    for (const auto& resource : offer.resources()) {
+      if (resource.has_disk() && resource.disk().source().type() ==
+          mesos::Resource::DiskInfo::Source::MOUNT) {
+        LOG(INFO) << resource.DebugString();
+        std::string path = resource.disk().source().mount().root();
+        mesos::ExecutorID executor_id;
+        executor_id.set_value(
+            kExecutorId + state_->framework_id());
+        quobyte::ProbeRequest request;
+        request.set_initialize_path(path);
+        driver->sendFrameworkMessage(
+            executor_id, offer.slave_id(),
+            request.SerializeAsString());
+      }
+    }
+
     mesos::Resources remaining_resources = offer.resources();
     quobyte::NodeState& node_state = node->second;
     node_state.set_last_offer_s(now());

@@ -16,14 +16,19 @@ Further:
 Setup Storage Devices
 ---------------------
 
-Quobyte Storage Devices are storage devices local to the host. This means:
+Quobyte Storage Devices are storage devices local to the host. Depending on bare metal or cloud setups they come in several forms:
 
 * servers: local HDs and SSDs
 * AWS: mounted EBS volumes
 * GCE: mounted persistent volumes
 
-Storage devices need to be formatted (ext4), tagged with qmkdev, and mounted in a sub-directory of /mnt.
+Generally Quobyte Devices are formated (ext4) and mounted storage devices. 
+
 Pick one device that will run the registry initially and run *qbootstrap* (bootstrapping needs to be done only once for the initial Quobyte setup). You need at least one registry, one metadata and one data device.
+
+Further devices can be added to Quobyte in two ways:
+1. On the host, tag the device with qmkdev.
+2. Alternatively, provide a Mount disk to the Quobyte framework with Mesos' [Multiple Disk](http://mesos.apache.org/documentation/latest/multiple-disk/) support.
 
 On AWS or GCE attach the devices across one or several instances.
 
