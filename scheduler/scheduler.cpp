@@ -541,6 +541,12 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         driver->sendFrameworkMessage(
             executor_id, offer.slave_id(),
             request.SerializeAsString());
+        std::vector<mesos::OfferID> offers = {offer.id()};
+        mesos::Offer::Operation op;
+        op.set_type(mesos::Offer::Operation::CREATE);
+        *op.mutable_create()->add_volumes() = resource;
+        std::vector<mesos::Offer::Operation> operations = {op};
+        driver->acceptOffers(offers, operations);
       }
     }
 
