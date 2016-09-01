@@ -3,9 +3,9 @@ Quobyte Framework for Apache Mesos / Mesosphere DCOS
 
 This Apache Mesos framework deploys the Quobyte Storage System on an Apache Mesos or Mesosphere DCOS cluster.
 
-Quobyte solves the stateful container problem by providing containers with persistent storage that can be uniformely accessed no matter where the container is scheduled.
+Quobyte solves the **stateful container** problem by providing containers with persistent storage that can be uniformely accessed no matter where the container is scheduled.
 
-Quobyte is a fully fault-tolerant distributed POSIX file system. It aggregates the available storage resources of a cluster
+Quobyte is a fully fault-tolerant **distributed POSIX file system**. It aggregates the available storage resources of a cluster
 and makes them available for highly-available and scalable file storage. It can run directly on hosts or in public clouds. In
 public clouds, it works with the the respective persistent volume services instead of local drives.
 
