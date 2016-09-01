@@ -2,6 +2,17 @@
 
 This document provides a quick overview on which elements comprise the Quobyte system run by the Quobyte Mesos framework.
 
+Quobyte consists of three core services:
+* Registry Services: registry of services, devices, volumes. Usually 3 replicas per deployment.
+* Metadata Service: file metadata and file locations
+* Data Services: file data
+
+Two additional services provide access to the system's management interface:
+* API Service: JSONRPC API service for third-party software
+* Webconsole: user interface for monitoring and managing the Quobyte system
+
+The framework is also prepared to start a Quobyte client in a container that mounts the Quobyte volume namespace in /quobyte on the host. From there individual volumes and directories can be mapped into containers.
+
 ## Building Blocks
 
 A Mesos based Quobyte system is based on the following building blocks:
