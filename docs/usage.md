@@ -5,8 +5,7 @@ Quobyte Mesos Framework - Usage
 Preparations
 ------------
 
-You can get access to the Quobyte download and documentation portal by sending an email to info@quobyte.com.
-
+[Get your account](https://www.quobyte.com/get-quobyte) for Quobyte downloads.
 Further:
 
 * Familiarize yourself with Quobyte from the documentation. 
