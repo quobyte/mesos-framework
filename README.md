@@ -11,22 +11,6 @@ As a storage platform for a container infrastructures Quobyte can support applic
 For more details see to http://www.quobyte.com.
 
 This framework deploys Quobyte on a Mesos cluster by starting the respective Quobyte services on each host that has storage resources.
-Quobyte consists of three core services:
-* Registry Services: registry of services, devices, volumes. Usually 3 replicas per deployment.
-* Metadata Service: file metadata and file locations
-* Data Services: file data
-
-Two additional services provide access to the system's management interface:
-* API Service: JSONRPC API service for third-party software
-* Webconsole: user interface for monitoring and managing the Quobyte system
-
-The framework is also prepared to start a Quobyte client in a container that mounts the Quobyte volume namespace in /quobyte on the host. From there individual volumes and directories can be mapped into containers.
-
-Dependencies:
--------------
-* mesos-dns. Keep your mesos subdomain at hand for further setup.
-* a Docker registry with the Quobyte services container. You'll need its URL.
-
 
 Documentation
 =============
