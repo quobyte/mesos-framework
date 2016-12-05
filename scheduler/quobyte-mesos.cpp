@@ -11,12 +11,11 @@
 #include <gflags/gflags.h>
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
+#include <mesos/state/zookeeper.hpp>
+#include <mesos/state/state.hpp>
 
 #include "scheduler.hpp"
 #include "http_server.hpp"
-
-#include "state/zookeeper.hpp"
-#include "state/state.hpp"
 
 DEFINE_string(master, "",
               "Mesos master host:port or zk://host:port/mesos URL");
@@ -67,9 +66,9 @@ int main(int argc, char* argv[]) {
   gflags::SetUsageMessage("Quobyte Mesos framework");
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-  mesos::internal::state::ZooKeeperStorage storage(
+  mesos::state::ZooKeeperStorage storage(
       FLAGS_zk, Seconds(120), FLAGS_zk_path);
-  mesos::internal::state::State state_storage(&storage);
+  mesos::state::State state_storage(&storage);
 
   const std::string state_path = "scheduler-" + FLAGS_deployment;
   SchedulerStateProxy state_proxy(&state_storage, state_path);

@@ -11,13 +11,14 @@
 
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
-#include "state/state.hpp"
+#include <mesos/state/zookeeper.hpp>
+#include <mesos/state/state.hpp>
 
 #include "quobyte.pb.h"
 
 class SchedulerStateProxy {
  public:
-  SchedulerStateProxy(mesos::internal::state::State* state,
+  SchedulerStateProxy(mesos::state::State* state,
                       const std::string& path);
   void erase();
   std::string framework_id();
@@ -30,7 +31,7 @@ class SchedulerStateProxy {
  private:
   void writeback();
 
-  mesos::internal::state::State* state_;
+  mesos::state::State* state_;
   const std::string path_;
   quobyte::SchedulerState data_;
 };
@@ -111,6 +112,7 @@ public:
 
   quobyte::ServiceState api_state_;
   quobyte::ServiceState console_state_;
+  quobyte::ServiceState s3_state_;
   std::map<std::string, quobyte::NodeState> nodes_;
 };
 

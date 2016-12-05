@@ -24,6 +24,7 @@ const std::string REGISTRY_TASK = "registry";
 const std::string METADATA_TASK = "metadata";
 const std::string DATA_TASK = "data";
 const std::string API_TASK = "api";
+const std::string S3_TASK = "s3";
 const std::string WEBCONSOLE_TASK = "webconsole";
 const std::string CLIENT_TASK = "client";
 
@@ -55,6 +56,8 @@ DEFINE_string(client_resources, "cpus:2.0;mem:2048;disk:150",
               "Resources for prober");
 DEFINE_string(api_resources, "cpus:0.1;mem:512;disk:32",
               "Resources for api");
+DEFINE_string(s3_resources, "cpus:1.0;mem:512;disk:32",
+              "Resources for s3");
 DEFINE_string(webconsole_resources, "cpus:0.5;mem:512;disk:32",
               "Resources for webconsole");
 DEFINE_string(extra_service_config, "",
@@ -74,6 +77,8 @@ DEFINE_string(prober_user, "root",
 DEFINE_int32(port_range_base, 21000,
              "Where to start allocating ports (10 required currently). This very port will be used for the registry RPC port.");
 DEFINE_int32(api_port, 8889, "JSON-RPC API port");
+DEFINE_int32(s3_port, 80, "S3 port");
+DEFINE_string(s3_hostname, "", "S3 hostname, mandatory when running S3");
 DEFINE_int32(webconsole_port, 8888, "Webconsole HTTP port");
 DEFINE_string(framework_image, "quobyte/quobyte-mesos:latest",
               "Docker image name of the Quobyte framework");
@@ -218,6 +223,9 @@ static std::string constructDockerExecuteCommand(
   if (service_name == "api") {
     rcs << " && export QUOBYTE_API_PORT=" + std::to_string(FLAGS_api_port);
   }
+  if (service_name == "s3") {
+    rcs << " && export QUOBYTE_S3_PORT=" + std::to_string(FLAGS_s3_port);
+  }
   if (service_name == "webconsole") {
     rcs << " && export QUOBYTE_WEBCONSOLE_PORT=" + std::to_string(FLAGS_webconsole_port);
   }
@@ -242,6 +250,12 @@ static std::string constructDockerExecuteCommand(
     rcs << " && export QUOBYTE_MAX_MEM_API="
         << memMbFromResourceString(FLAGS_api_resources)
         << "m";
+  }
+  if (service_name == "s3") {
+    rcs << " && export QUOBYTE_MAX_MEM_S3="
+        << memMbFromResourceString(FLAGS_s3_resources)
+        << "m";
+    rcs << " && export QUOBYTE_S3_HOSTNAME=" + FLAGS_s3_hostname;
   }
   if (service_name == "webconsole") {
     rcs << " && export QUOBYTE_MAX_MEM_WEBCONSOLE="
@@ -342,7 +356,7 @@ static mesos::TaskInfo createClientTaskInfo() {
 
 
 SchedulerStateProxy::SchedulerStateProxy(
-    mesos::internal::state::State* state,
+    mesos::state::State* state,
     const std::string& path) : state_(state), path_(path) {
   std::string textformat = state_->fetch(path_).get().value();
   google::protobuf::TextFormat::Parser p;
@@ -378,7 +392,7 @@ void SchedulerStateProxy::writeback() {
     LOG(FATAL) << "Could not serialize " << data_.ShortDebugString();
   }
 
-  mesos::internal::state::Variable variable =
+  mesos::state::Variable variable =
       state_->fetch(path_).get();
   variable = variable.mutate(serialized);
   state_->store(variable);
@@ -425,6 +439,12 @@ QuobyteScheduler::QuobyteScheduler(
       WEBCONSOLE_TASK,
       FLAGS_port_range_base + 8,
       FLAGS_port_range_base + 9,
+      FLAGS_webconsole_resources);
+
+  prepareServiceResources(
+      S3_TASK,
+      FLAGS_port_range_base + 10,
+      FLAGS_port_range_base + 11,
       FLAGS_webconsole_resources);
 
   mesos::Resources prober_resources =
@@ -498,6 +518,8 @@ void QuobyteScheduler::reconcileHost(mesos::SchedulerDriver* driver,
   status.push_back(prober);
   prober.mutable_task_id()->set_value("quobyte-api-" + offer.hostname());
   status.push_back(prober);
+  prober.mutable_task_id()->set_value("quobyte-s3-" + offer.hostname());
+  status.push_back(prober);
   driver->reconcileTasks(status);
 }
 
@@ -528,10 +550,12 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       continue;
     }
 
+/*  TODO(felix): reenable once fixed. Fails with "unknown offers".
+
     for (const auto& resource : offer.resources()) {
       if (resource.has_disk() && resource.disk().source().type() ==
           mesos::Resource::DiskInfo::Source::MOUNT) {
-        LOG(INFO) << resource.DebugString();
+        LOG(INFO) << offer.id().value() << " " << resource.DebugString();
         std::string path = resource.disk().source().mount().root();
         mesos::ExecutorID executor_id;
         executor_id.set_value(
@@ -549,7 +573,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         driver->acceptOffers(offers, operations);
       }
     }
-
+*/
     mesos::Resources remaining_resources = offer.resources();
     quobyte::NodeState& node_state = node->second;
     node_state.set_last_offer_s(now());
@@ -587,7 +611,8 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         var->set_value(".libs");
 #endif
 
-        driver->launchTasks(offer.id(), std::vector<mesos::TaskInfo>({{task}}));
+        mesos::Status status = driver->launchTasks(
+            offer.id(), std::vector<mesos::TaskInfo>({{task}}));
         continue;  // offer taken check next
       } else {
         LOG(ERROR) << "Not enough resources for prober on " << offer.hostname();
@@ -618,7 +643,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       if (remaining_resources.contains(resources_[API_TASK]) &&
           DoStartService(api_state_.state()) &&
           (FLAGS_public_slave_role.empty() ||
-           remaining_resources.reserved().count(FLAGS_public_slave_role) > 0)) {
+           remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
         remaining_resources -= resources_[API_TASK];
         tasks_to_start.push_back(
             makeTask(API_TASK,
@@ -631,10 +656,27 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         api_state_.set_state(quobyte::ServiceState::RUNNING);
         api_state_.set_task_id("quobyte-api-" + offer.hostname());
       }
+      if (!FLAGS_s3_hostname.empty() &&
+          remaining_resources.contains(resources_[S3_TASK]) &&
+          DoStartService(s3_state_.state()) &&
+          (FLAGS_public_slave_role.empty() ||
+           remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
+        remaining_resources -= resources_[S3_TASK];
+        tasks_to_start.push_back(
+            makeTask(S3_TASK,
+                     "quobyte-s3",
+                     "quobyte-s3-" + offer.hostname(),
+                     offer.hostname(),
+                     FLAGS_port_range_base + 10,
+                     FLAGS_port_range_base + 11,
+                     offer.slave_id()));
+        s3_state_.set_state(quobyte::ServiceState::RUNNING);
+        s3_state_.set_task_id("quobyte-s3-" + offer.hostname());
+      }
       if (remaining_resources.contains(resources_[WEBCONSOLE_TASK]) &&
           DoStartService(console_state_.state()) &&
           (FLAGS_public_slave_role.empty() ||
-           remaining_resources.reserved().count(FLAGS_public_slave_role) > 0)) {
+           remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
         remaining_resources -= resources_[WEBCONSOLE_TASK];
         tasks_to_start.push_back(
             makeTask(WEBCONSOLE_TASK,
@@ -751,6 +793,9 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
                            "quobyte-api-" + offer.hostname(),
                            api_state_);
       KillServiceIfRunning(driver,
+                           "quobyte-s3-" + offer.hostname(),
+                           s3_state_);
+      KillServiceIfRunning(driver,
                            "quobyte-webconsole-" + offer.hostname(),
                            console_state_);
     }
@@ -775,6 +820,8 @@ quobyte::ServiceState* QuobyteScheduler::getService(
     return node->mutable_data();
   } else if (service == "quobyte-api") {
     return &api_state_;
+  } else if (service == "quobyte-s3") {
+    return &s3_state_;
   } else if (service == "quobyte-webconsole") {
     return &console_state_;
   } else if (service == "quobyte-client") {
@@ -814,7 +861,7 @@ void QuobyteScheduler::statusUpdate(mesos::SchedulerDriver* driver,
       status.state() == mesos::TASK_FINISHED) {
     bool service_should_run = true;
 
-    if ((service == "quobyte-api" || service == "quobyte-webconsole") &&
+    if ((service == "quobyte-api" || service == "quobyte-webconsole" || service == "quobyte-s3") &&
         service_state->state() == quobyte::ServiceState::RUNNING &&
         service_state->task_id() != status.task_id().value()) {
       service_should_run = false;
@@ -935,6 +982,8 @@ void QuobyteScheduler::prepareServiceResources(
     res_string += ";" + buildResourceString(rpcPort, httpPort, FLAGS_api_port);
   } else if (service_id == "webconsole") {
     res_string += ";" + buildResourceString(rpcPort, httpPort, FLAGS_webconsole_port);
+  } else if (service_id == "s3") {
+    res_string += ";" + buildResourceString(rpcPort, httpPort, FLAGS_s3_port);
   } else {
     res_string += ";" + buildResourceString(rpcPort, httpPort, 0);
   }
@@ -972,6 +1021,9 @@ mesos::TaskInfo QuobyteScheduler::makeTask(const std::string& service_id,
   *dockerInfo.add_port_mappings() = makePort(httpPort, "tcp");
   if (service_id == "api") {
     *dockerInfo.add_port_mappings() = makePort(FLAGS_api_port, "tcp");
+  }
+  if (service_id == "s3") {
+    *dockerInfo.add_port_mappings() = makePort(FLAGS_s3_port, "tcp");
   }
   if (service_id == "webconsole") {
     *dockerInfo.add_port_mappings() = makePort(FLAGS_webconsole_port, "tcp");
@@ -1056,6 +1108,9 @@ int QuobyteScheduler::countRunningServices() {
   if (api_state_.state() == quobyte::ServiceState::RUNNING) {
     result++;
   }
+  if (s3_state_.state() == quobyte::ServiceState::RUNNING) {
+    result++;
+  }
   if (console_state_.state() == quobyte::ServiceState::RUNNING) {
     result++;
   }
@@ -1123,7 +1178,11 @@ std::string QuobyteScheduler::handleHTTP(
         " " + api_state_.task_id();
     result += "<div class=\"details\"><pre>" + api_state_.DebugString() + "</pre></div></td></tr>";
 
-    result += "<tr class='hostbox'><td>Console: </td><td>" +  ServiceState_TaskState_Name(api_state_.state()) +
+    result += "<tr class='hostbox'><td>S3: </td><td>" +  ServiceState_TaskState_Name(s3_state_.state()) +
+        " " + s3_state_.task_id();
+    result += "<div class=\"details\"><pre>" + s3_state_.DebugString() + "</pre></div></td></tr>";
+
+    result += "<tr class='hostbox'><td>Console: </td><td>" +  ServiceState_TaskState_Name(console_state_.state()) +
         " " + console_state_.task_id();
     result += "<div class=\"details\"><pre>" + console_state_.DebugString() + "</pre></div></td></tr>";
     result += "</tbody></table>\n\n";

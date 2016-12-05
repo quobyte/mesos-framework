@@ -1,12 +1,13 @@
 HEADERS = 
 SOURCES := quobyte.pb.cc
 BINARY = libquobyteproto.a
-MESOS_SRC = ../thirdparty/mesos
+
 CXX = g++
 CXXFLAGS = -g -O2 -pthread -std=c++11
-LDFLAGS += -L../thirdparty/mesos -lmesos -lpthread -lprotobuf -lgflags
-CXXCOMPILE = $(CXX) $(INCLUDES) $(CXXFLAGS) -c $<
-CXXLINK = $(CXX) $(LDFLAGS) -o $(BINARY)
+LDFLAGS += -lmesos -lpthread -lprotobuf -lgflags
+CXXCOMPILE = $(CXX) $(INCLUDE_DIRS) $(CXXFLAGS) -c $<
+CXXLINK = $(CXX) $(LINK_DIRS) $(LDFLAGS) -o $(BINARY)
+PROTOC = $(MESOS_SRC)/build/3rdparty/protobuf-2.6.1/src/protoc
 
 OBJS := $(SOURCES:.cc=.o)
 default: $(BINARY)
@@ -15,7 +16,7 @@ default: $(BINARY)
 	$(CXXCOMPILE)
 	
 quobyte.pb.cc: quobyte.proto
-	/usr/bin/protoc quobyte.proto --cpp_out=.
+	$(PROTOC) quobyte.proto --cpp_out=.
 
 $(BINARY): $(OBJS)
 	ar rcs $@ $^

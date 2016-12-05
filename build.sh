@@ -9,7 +9,7 @@ git checkout $MESOS_VERSION
  ./bootstrap
 mkdir build
 cd build
-../configure
+../configure --enable-static
 make
 
 strip --strip-all thirdparty/mesos/build/src/.libs/libmesos-*.so
