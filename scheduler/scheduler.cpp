@@ -117,7 +117,8 @@ static bool IsTerminal(mesos::TaskState state) {
   }
 }
 
-static bool DoStartService(quobyte::ServiceState_TaskState state) {
+static bool ShouldServiceBeStarted(
+    quobyte::ServiceState_TaskState state) {
   switch (state) {
     case quobyte::ServiceState::STARTING:
     case quobyte::ServiceState::RUNNING:
@@ -126,6 +127,38 @@ static bool DoStartService(quobyte::ServiceState_TaskState state) {
     case quobyte::ServiceState::NOT_RUNNING:
       return true;
   }
+}
+
+static bool DoStartService(
+    const std::string& service_type,
+    const quobyte::NodeState& node,
+    quobyte::ServiceState_TaskState state) {
+  if (!node.device_types_valid()) {
+    LOG(INFO) << "Not scheduling services on "
+        << node.hostname() << ", waiting for devices";
+    return false;
+  }
+
+  int core_services_running = 0;
+  if (node.registry().state() == quobyte::ServiceState::RUNNING) {
+    ++core_services_running;
+  }
+  if (node.metadata().state() == quobyte::ServiceState::RUNNING) {
+    ++core_services_running;
+  }
+  if (node.data().state() == quobyte::ServiceState::RUNNING) {
+    ++core_services_running;
+  }
+
+  if (core_services_running != node.device_type_size()
+      && service_type != REGISTRY_TASK
+      && service_type != METADATA_TASK
+      && service_type != DATA_TASK) {
+    LOG(INFO) << "Not scheduling non-core service on "
+        << node.hostname() << ", waiting for devices";
+    return false;
+  }
+  return ShouldServiceBeStarted(state);
 }
 
 static void KillServiceIfRunning(
@@ -641,7 +674,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
     if (!state_->state().target_version().empty()) {
       std::vector<mesos::TaskInfo> tasks_to_start;
       if (remaining_resources.contains(resources_[API_TASK]) &&
-          DoStartService(api_state_.state()) &&
+          DoStartService(API_TASK, node_state, api_state_.state()) &&
           (FLAGS_public_slave_role.empty() ||
            remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
         remaining_resources -= resources_[API_TASK];
@@ -658,7 +691,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       }
       if (!FLAGS_s3_hostname.empty() &&
           remaining_resources.contains(resources_[S3_TASK]) &&
-          DoStartService(s3_state_.state()) &&
+          DoStartService(S3_TASK, node_state, s3_state_.state()) &&
           (FLAGS_public_slave_role.empty() ||
            remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
         remaining_resources -= resources_[S3_TASK];
@@ -674,7 +707,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         s3_state_.set_task_id("quobyte-s3-" + offer.hostname());
       }
       if (remaining_resources.contains(resources_[WEBCONSOLE_TASK]) &&
-          DoStartService(console_state_.state()) &&
+          DoStartService(WEBCONSOLE_TASK, node_state, console_state_.state()) &&
           (FLAGS_public_slave_role.empty() ||
            remaining_resources.reserved(FLAGS_public_slave_role).size() > 0)) {
         remaining_resources -= resources_[WEBCONSOLE_TASK];
@@ -690,7 +723,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
         console_state_.set_task_id("quobyte-webconsole-" + offer.hostname());
       }
       if (remaining_resources.contains(resources_[CLIENT_TASK]) &&
-          DoStartService(node_state.client().state()) &&
+          DoStartService(CLIENT_TASK, node_state, node_state.client().state()) &&
           node_state.client_mount_point()) {
         remaining_resources -= resources_[CLIENT_TASK];
         mesos::TaskInfo task = createClientTaskInfo();
@@ -705,7 +738,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
       for (auto device_type : node_state.device_type()) {
         switch (device_type) {
           case quobyte::DeviceType::REGISTRY:
-            if (DoStartService(node_state.registry().state())) {
+            if (DoStartService(REGISTRY_TASK, node_state, node_state.registry().state())) {
               if (!remaining_resources.contains(resources_[REGISTRY_TASK])) {
                 LOG(ERROR) << "Could not start registry: insufficient resources "
                     << offer.DebugString();
@@ -727,7 +760,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
             }
             break;
           case quobyte::DeviceType::METADATA:
-            if (DoStartService(node_state.metadata().state())) {
+            if (DoStartService(METADATA_TASK, node_state, node_state.metadata().state())) {
               if (!remaining_resources.contains(resources_[METADATA_TASK])) {
                 LOG(ERROR) << "Could not start metadata: insufficient resources "
                     << offer.DebugString();
@@ -749,7 +782,7 @@ void QuobyteScheduler::resourceOffers(mesos::SchedulerDriver* driver,
             }
             break;
           case quobyte::DeviceType::DATA:
-            if (DoStartService(node_state.data().state())) {
+            if (DoStartService(DATA_TASK, node_state, node_state.data().state())) {
               if (!remaining_resources.contains(resources_[DATA_TASK])) {
                 LOG(ERROR) << "Could not start data: insufficient resources "
                     << offer.DebugString();
