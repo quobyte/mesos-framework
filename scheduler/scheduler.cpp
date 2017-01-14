@@ -68,6 +68,8 @@ DEFINE_int32(registry_extra_ram_mb, 512,
              "Extra ram for registry");
 DEFINE_int32(metadata_extra_ram_mb, 1024,
              "Extra ram for metadata");
+DEFINE_int32(s3_extra_ram_mb, 1536,
+             "Extra ram for s3");
 DEFINE_bool(enable_assertions, false,
             "Enable assertions");
 DEFINE_string(host_device_directory,"/mnt",
@@ -286,7 +288,7 @@ static std::string constructDockerExecuteCommand(
   }
   if (service_name == "s3") {
     rcs << " && export QUOBYTE_MAX_MEM_S3="
-        << memMbFromResourceString(FLAGS_s3_resources)
+        << memMbFromResourceString(FLAGS_s3_resources) - FLAGS_s3_extra_ram_mb
         << "m";
     rcs << " && export QUOBYTE_S3_HOSTNAME=" + FLAGS_s3_hostname;
   }
